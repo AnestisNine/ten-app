@@ -112,6 +112,7 @@ class LiveItem {
     this.ticketsPresale = 0,
     this.ticketsDoor = 0,
     this.generalInfo = '',
+    this.ticketUrl,
   });
 
   factory LiveItem.fromJson(Map<String, dynamic> json) => LiveItem(
@@ -141,6 +142,7 @@ class LiveItem {
         ticketsPresale: (json['ticketsPresale'] as num).toInt(),
         ticketsDoor: (json['ticketsDoor'] as num).toInt(),
         generalInfo: (json['generalInfo'] as String?) ?? '',
+        ticketUrl: json['ticketUrl'] as String?,
       );
 
   final String id;
@@ -169,6 +171,7 @@ class LiveItem {
   int ticketsPresale;
   int ticketsDoor;
   String generalInfo;
+  String? ticketUrl;
 
   /// JSON for the API. Server-assigned fields are left out.
   Map<String, dynamic> toJson() => {
@@ -198,6 +201,7 @@ class LiveItem {
         'ticketsPresale': ticketsPresale,
         'ticketsDoor': ticketsDoor,
         'generalInfo': generalInfo,
+        'ticketUrl': ticketUrl,
       };
 
   LiveItem copy() => LiveItem.fromJson({...toJson(), });

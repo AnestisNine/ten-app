@@ -36,6 +36,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
   late final TextEditingController ticketsPresale;
   late final TextEditingController ticketsDoor;
   late final TextEditingController generalInfo;
+  late final TextEditingController ticketUrl;
 
   late DateTime liveDate;
   late LiveStatus status;
@@ -79,6 +80,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       text: '${live.ticketsDoor}',
     );
     generalInfo = TextEditingController(text: live.generalInfo);
+    ticketUrl = TextEditingController(text: live.ticketUrl ?? '');
     liveDate = live.date;
     status = live.status;
     tourId = live.tourId;
@@ -101,6 +103,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       ticketsPresale,
       ticketsDoor,
       generalInfo,
+      ticketUrl,
     ]) {
       controller.dispose();
     }
@@ -284,6 +287,19 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                   ),
+                ),
+              ),
+            ],
+          ),
+          _section(
+            'Site',
+            [
+              TextField(
+                controller: ticketUrl,
+                keyboardType: TextInputType.url,
+                decoration: const InputDecoration(
+                  labelText: 'Link εισιτηρίων (https://…)',
+                  helperText: 'Τα επιβεβαιωμένα lives εμφανίζονται αυτόματα στο thebonnienettles.com',
                 ),
               ),
             ],
@@ -488,6 +504,13 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
     final live = widget.live;
     final invalid = [doorDeal, fixAmount, merchIncome, soundEngineerFee, technicianFee, supportBandFee]
         .where((c) => c.text.trim().isNotEmpty && parseCents(c.text) == null);
+    final link = ticketUrl.text.trim();
+    if (link.isNotEmpty && !(Uri.tryParse(link)?.isAbsolute == true && link.startsWith('http'))) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Το link εισιτηρίων πρέπει να ξεκινά με https://')),
+      );
+      return;
+    }
     if (invalid.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Μη έγκυρο ποσό. Π.χ. 120 ή 120,50')),
@@ -518,6 +541,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       live.ticketsPresale = _int(ticketsPresale.text);
       live.ticketsDoor = _int(ticketsDoor.text);
       live.generalInfo = generalInfo.text.trim();
+      live.ticketUrl = ticketUrl.text.trim().isEmpty ? null : ticketUrl.text.trim();
     });
 
     final saved = await AppStore.update(live);

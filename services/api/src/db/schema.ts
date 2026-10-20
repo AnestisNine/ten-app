@@ -136,6 +136,7 @@ export const lives = pgTable(
     ticketsPresale: integer('tickets_presale').notNull().default(0),
     ticketsDoor: integer('tickets_door').notNull().default(0),
     generalInfo: text('general_info').notNull().default(''),
+    ticketUrl: text('ticket_url'),
     ...timestamps,
   },
   (t) => [index('lives_date_idx').on(t.date)],
@@ -328,3 +329,32 @@ export const notifications = pgTable(
   },
   (t) => [index('notifications_user_idx').on(t.userId, t.read)],
 );
+
+// ---------------------------------------------------------------- public website
+
+/** Messages from the website's contact / booking form. Becomes part of the CRM later. */
+export const inquiries = pgTable('inquiries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  type: text('type').notNull(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  phone: text('phone').notNull().default(''),
+  subject: text('subject').notNull().default(''),
+  message: text('message').notNull(),
+  locale: text('locale').notNull().default('el'),
+  status: text('status').notNull().default('new'),
+  ...timestamps,
+});
+
+/** Newsletter sign-ups with the consent that was given (GDPR). */
+export const newsletterSubscribers = pgTable('newsletter_subscribers', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  email: text('email').notNull().unique(),
+  locale: text('locale').notNull().default('el'),
+  consentAt: timestamp('consent_at', { withTimezone: true }).notNull(),
+  consentText: text('consent_text').notNull(),
+  /** Set after double opt-in, once outgoing email is configured. */
+  confirmedAt: timestamp('confirmed_at', { withTimezone: true }),
+  unsubscribedAt: timestamp('unsubscribed_at', { withTimezone: true }),
+  ...timestamps,
+});

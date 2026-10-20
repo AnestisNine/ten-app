@@ -68,6 +68,8 @@ export const Live = z.object({
   ticketsPresale: z.number().int().min(0),
   ticketsDoor: z.number().int().min(0),
   generalInfo: longText,
+  /** Public ticket link shown on the website for confirmed shows. */
+  ticketUrl: z.union([z.url({ protocol: /^https?$/ }).max(500), z.literal('')]).nullable(),
 });
 
 export const Product = z.object({
@@ -213,6 +215,52 @@ export const Notification = z.object({
   at: isoDateTime,
   read: z.boolean(),
 });
+
+// ---------- public website ----------
+
+export const PublicShow = z.object({
+  id,
+  date: isoDate,
+  venue: z.string(),
+  city: z.string(),
+  country: z.string(),
+  countryCode: z.string().nullable(),
+  support: z.string(),
+  ticketUrl: z.string().nullable(),
+});
+
+export const PublicProduct = z.object({
+  id,
+  name: z.string(),
+  priceCents: cents,
+  inStock: z.boolean(),
+  imageUrl: z.string().nullable(),
+});
+
+export const InquiryType = z.enum(['booking', 'press', 'general']);
+
+export const ContactRequest = z.object({
+  type: InquiryType,
+  name: z.string().trim().min(1).max(100),
+  email: z.email().max(200),
+  phone: z.string().trim().max(50).default(''),
+  subject: z.string().trim().max(200).default(''),
+  message: z.string().trim().min(1).max(5000),
+  locale: z.enum(['el', 'en']).default('el'),
+  /** Honeypot: real people leave it empty. */
+  website: z.string().max(0).default(''),
+});
+
+export const NewsletterRequest = z.object({
+  email: z.email().max(200),
+  locale: z.enum(['el', 'en']).default('el'),
+  /** Explicit opt-in (GDPR): the checkbox must be ticked. */
+  consent: z.literal(true),
+  website: z.string().max(0).default(''),
+});
+
+export type PublicShow = z.infer<typeof PublicShow>;
+export type PublicProduct = z.infer<typeof PublicProduct>;
 
 /** Create payloads: everything except server-assigned fields; `id` is optional so offline clients can pick one. */
 const createOf = <T extends z.ZodRawShape>(s: z.ZodObject<T>, omit: string[] = []) =>

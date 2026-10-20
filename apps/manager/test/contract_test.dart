@@ -33,6 +33,7 @@ void main() {
         doorDealCents: 120050,
         ticketsPresale: 10,
         generalInfo: 'Soundcheck 18:00',
+        ticketUrl: 'https://tickets.example/temple',
       ).toJson(),
       'calendar-events': CalendarItem(
         id: '33333333-3333-4333-8333-333333333333',

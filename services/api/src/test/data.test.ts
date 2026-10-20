@@ -21,7 +21,7 @@ const newLive = {
   status: 'proposal', tourId: null, cashIncomeCents: 0, merchIncomeCents: 0, soundExpensesCents: 0,
   extraExpensesCents: 0, doorDealCents: 0, fixCents: 50000, soundEngineerFeeCents: 0, technicianFeeCents: 0,
   supportBandFeeCents: 0, mainAct: 'TBN', support: '', contactPerson: '', soundEngineer: '', ticketsPresale: 0,
-  ticketsDoor: 0, generalInfo: '',
+  ticketsDoor: 0, generalInfo: '', ticketUrl: null,
 };
 
 describe('CRUD with permissions and audit', () => {

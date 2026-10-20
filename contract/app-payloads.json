@@ -33,7 +33,8 @@
     "soundEngineer": "",
     "ticketsPresale": 10,
     "ticketsDoor": 0,
-    "generalInfo": "Soundcheck 18:00"
+    "generalInfo": "Soundcheck 18:00",
+    "ticketUrl": "https://tickets.example/temple"
   },
   "calendar-events": {
     "id": "33333333-3333-4333-8333-333333333333",

@@ -13,6 +13,7 @@ import { registerEntityRoutes } from './routes/entities.js';
 import { registerFileRoutes } from './routes/files.js';
 import { registerMeRoutes } from './routes/me.js';
 import { registerMemberSensitiveRoutes } from './routes/member-sensitive.js';
+import { registerPublicRoutes } from './routes/public.js';
 import { registerSystemRoutes } from './routes/system.js';
 import { registerUserRoutes } from './routes/users.js';
 
@@ -46,7 +47,8 @@ export function createApp(deps: Deps) {
   const trusted = splitList(deps.config.TRUSTED_ORIGINS);
   if (trusted.length > 0) {
     // Only needed when the app is served from a different origin (e.g. Flutter dev server).
-    app.use('/api/*', cors({ origin: trusted, credentials: true, allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'] }));
+    app.use('/api/v1/*', cors({ origin: trusted, credentials: true, allowMethods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'] }));
+    app.use('/api/auth/*', cors({ origin: trusted, credentials: true, allowMethods: ['GET', 'POST'] }));
   }
 
   app.onError((err, c) => {
@@ -62,6 +64,8 @@ export function createApp(deps: Deps) {
 
   // Better Auth: sign-in, sign-out, session, 2FA, password reset.
   app.on(['GET', 'POST'], '/api/auth/*', (c) => deps.auth.handler(c.req.raw));
+
+  registerPublicRoutes(app);
 
   app.use('/api/v1/*', checkOrigin, loadSession);
   app.use('/api/v1/*', async (c, next) => {

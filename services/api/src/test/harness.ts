@@ -26,6 +26,7 @@ export async function createTestApp() {
     AUTH_SECRET: 'test-secret-test-secret-test-secret-0123456789',
     DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
     FILES_DIR: '/tmp/tbn-test-files',
+    PUBLIC_SITE_ORIGINS: 'https://thebonnienettles.test',
   });
   const { db, sql } = createDb(TEST_DB_URL);
   await seed(db, config.DATA_ENCRYPTION_KEY);
