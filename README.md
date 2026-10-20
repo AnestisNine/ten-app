@@ -5,7 +5,7 @@ Phase 3, the band's public website. One source of truth: a PostgreSQL database b
 
 | Part | Path | Stack |
 |---|---|---|
-| Internal app (web + iOS) | `apps/manager` | Flutter 3.47 / Dart |
+| Internal app (web only) | `apps/manager` | Flutter 3.47 / Dart, built for the web |
 | API | `services/api` | Node 22, Hono, Drizzle ORM, Better Auth, zod |
 | Shared contract | `packages/shared` | TypeScript: zod schemas, roles/permissions, money helpers |
 | Public website | `apps/web` | Phase 3 (Astro) |

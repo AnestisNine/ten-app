@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../api/api_client.dart';
@@ -6,12 +5,11 @@ import '../core/app_info.dart';
 import '../core/theme.dart';
 import '../data/app_store.dart';
 import '../l10n/app_localizations.dart';
-import '../security/app_lock_service.dart';
 import 'main_shell.dart';
 import 'two_factor_screen.dart';
 
 /// After a successful sign-in (or on start with a valid session): enforce 2FA enrollment for roles
-/// that need it, unlock with Face ID / Touch ID on native devices, load the data, open the app.
+/// that need it, load the data, open the app.
 Future<void> enterApp(BuildContext context) async {
   final navigator = Navigator.of(context);
   final me = await AppStore.loadMe();
@@ -26,7 +24,6 @@ Future<void> enterApp(BuildContext context) async {
     );
     return;
   }
-  if (!await AppLockService.authenticate()) return;
   await AppStore.loadAll();
   navigator.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const MainShell()), (_) => false);
 }
@@ -56,7 +53,6 @@ class _StartupScreenState extends State<StartupScreen> {
 
   Future<void> _start() async {
     setState(() => error = null);
-    if (AppStore.api.needsServerUrl) return _toLogin();
     try {
       final me = await AppStore.loadMe();
       if (!mounted) return;
@@ -87,7 +83,6 @@ class _StartupScreenState extends State<StartupScreen> {
               Text(l.offline),
               const SizedBox(height: 12),
               FilledButton(onPressed: _start, child: Text(l.retry)),
-              TextButton(onPressed: _toLogin, child: Text(l.server)),
             ],
           ],
         ),
@@ -107,7 +102,6 @@ class _AuthScreenState extends State<AuthScreen> {
   final email = TextEditingController();
   final password = TextEditingController();
   final code = TextEditingController();
-  final server = TextEditingController(text: AppStore.api.baseUrl);
   bool needCode = false;
   bool backupCode = false;
   bool trustDevice = false;
@@ -116,7 +110,7 @@ class _AuthScreenState extends State<AuthScreen> {
 
   @override
   void dispose() {
-    for (final c in [email, password, code, server]) {
+    for (final c in [email, password, code]) {
       c.dispose();
     }
     super.dispose();
@@ -146,7 +140,6 @@ class _AuthScreenState extends State<AuthScreen> {
   }
 
   Future<void> _signIn() => _run(() async {
-        if (!kIsWeb) await AppStore.api.setServerUrl(server.text);
         final res = await AppStore.api.post('/api/auth/sign-in/email', {
           'email': email.text.trim(),
           'password': password.text,
@@ -171,7 +164,6 @@ class _AuthScreenState extends State<AuthScreen> {
           setState(() => message = l.enterEmailFirst);
           return;
         }
-        if (!kIsWeb) await AppStore.api.setServerUrl(server.text);
         await AppStore.api.post('/api/auth/request-password-reset', {'email': email.text.trim()});
         setState(() => message = l.resetSent);
       });
@@ -222,14 +214,6 @@ class _AuthScreenState extends State<AuthScreen> {
                           ),
                           const SizedBox(height: 40),
                           if (!needCode) ...[
-                            if (!kIsWeb) ...[
-                              TextField(
-                                controller: server,
-                                keyboardType: TextInputType.url,
-                                decoration: InputDecoration(labelText: l.server, hintText: l.serverHint),
-                              ),
-                              const SizedBox(height: 12),
-                            ],
                             TextField(
                               controller: email,
                               keyboardType: TextInputType.emailAddress,

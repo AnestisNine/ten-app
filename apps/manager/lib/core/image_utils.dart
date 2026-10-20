@@ -11,8 +11,7 @@ import '../api/api_client.dart';
 ImageProvider? imageProviderFromRef(String? ref) {
   if (ref == null) return null;
   if (ref.startsWith('/api/')) {
-    final api = ApiClient.instance;
-    return NetworkImage(api.uri(ref).toString(), headers: api.authHeaders);
+    return NetworkImage(ApiClient.instance.uri(ref).toString());
   }
   if (!ref.startsWith('data:image')) {
     return null;

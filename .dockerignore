@@ -2,7 +2,6 @@
 **/dist
 **/.dart_tool
 apps/manager/build
-apps/manager/ios
 .git
 .env
 .env.*

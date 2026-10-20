@@ -2,9 +2,6 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-
-import 'cookie_store.dart';
 import 'http_factory.dart';
 
 /// Error returned by the API: `{ "error": code, "message": ... }`.
@@ -24,51 +21,23 @@ class ApiException implements Exception {
 }
 
 class ApiClient {
-  ApiClient._(this._http, this._cookies);
+  ApiClient._(this._http);
 
   static ApiClient? _instance;
-  static ApiClient get instance => _instance ??= ApiClient._(createHttpClient(), manualCookies ? CookieStore() : null);
+  static ApiClient get instance => _instance ??= ApiClient._(createHttpClient());
 
   final http.Client _http;
-  final CookieStore? _cookies;
 
-  static const _serverKey = 'tbn_server_url';
   static const _defined = String.fromEnvironment('API_BASE_URL');
 
-  /// Server origin. Web: the page's own origin unless built with --dart-define=API_BASE_URL.
-  /// Native: the URL entered on the login screen (or the build-time default).
+  /// Server origin: the page's own origin, unless built with --dart-define=API_BASE_URL (development).
   String baseUrl = '';
 
-  bool get needsServerUrl => baseUrl.isEmpty;
-
   Future<void> init() async {
-    if (_defined.isNotEmpty) {
-      baseUrl = _defined;
-    } else if (kIsWeb) {
-      baseUrl = Uri.base.origin;
-    } else {
-      final prefs = await SharedPreferences.getInstance();
-      baseUrl = prefs.getString(_serverKey) ?? '';
-    }
-    await _cookies?.load();
-  }
-
-  Future<void> setServerUrl(String url) async {
-    var u = url.trim();
-    if (u.endsWith('/')) u = u.substring(0, u.length - 1);
-    if (!u.startsWith('https://') && !u.startsWith('http://localhost')) {
-      throw ApiException(0, 'bad_url', 'Ο server πρέπει να ξεκινά με https://');
-    }
-    baseUrl = u;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_serverKey, u);
+    baseUrl = _defined.isNotEmpty ? _defined : (kIsWeb ? Uri.base.origin : '');
   }
 
   Uri uri(String path) => Uri.parse('$baseUrl$path');
-
-  Map<String, String> get authHeaders => {
-        if (_cookies?.header != null) 'cookie': _cookies!.header!,
-      };
 
   Future<dynamic> get(String path) => _send('GET', path);
   Future<dynamic> post(String path, [Object? body]) => _send('POST', path, body);
@@ -78,13 +47,12 @@ class ApiClient {
 
   Future<dynamic> upload(String path, Uint8List bytes, String filename) async {
     final req = http.MultipartRequest('PUT', uri(path))
-      ..headers.addAll(authHeaders)
       ..files.add(http.MultipartFile.fromBytes('file', bytes, filename: filename));
     return _handle(await http.Response.fromStream(await _http.send(req)));
   }
 
   Future<dynamic> _send(String method, String path, [Object? body]) async {
-    final req = http.Request(method, uri(path))..headers.addAll(authHeaders);
+    final req = http.Request(method, uri(path));
     if (body != null) {
       req.headers['content-type'] = 'application/json';
       req.body = jsonEncode(body);
@@ -99,7 +67,6 @@ class ApiClient {
   }
 
   Future<dynamic> _handle(http.Response res) async {
-    await _cookies?.absorb(res.headers['set-cookie']);
     final text = utf8.decode(res.bodyBytes);
     dynamic json;
     if (text.isNotEmpty) {
@@ -117,6 +84,4 @@ class ApiClient {
       (map['message'] ?? 'Σφάλμα ${res.statusCode}').toString(),
     );
   }
-
-  Future<void> clearSession() async => _cookies?.clear();
 }

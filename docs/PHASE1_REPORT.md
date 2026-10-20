@@ -73,7 +73,6 @@ Tests: `pnpm -r test` (API και shared: 33 + 28) και `cd apps/manager && fl
   ξεχωριστά τα βήματά του (production bundle του API, Flutter web build, `docker compose config`), αλλά το πρώτο
   πραγματικό build θα γίνει στο GitHub Actions.
 - **Το GitHub Actions workflow δεν έχει τρέξει ακόμη**, γιατί δεν υπάρχει ακόμη GitHub repo.
-- **Το native iOS build** (η λογική για cookies και Keychain υπάρχει, αλλά δεν δοκιμάστηκε σε συσκευή).
 - **Αποστολή πραγματικών emails** (SMTP). Στην ανάπτυξη τα emails τυπώνονται στο log.
 
 ## Εκκρεμότητες / γνωστοί περιορισμοί
@@ -87,7 +86,7 @@ Tests: `pnpm -r test` (API και shared: 33 + 28) και `cd apps/manager && fl
   Google Calendar (OAuth). Προτείνω να γίνει στη Φάση 5 (Bookings, διαθεσιμότητα μελών) και θα σε ρωτήσω πριν.
 - **Offline**: το app χρειάζεται σύνδεση. Η λειτουργία offline θα υπάρξει μόνο για το POS (Φάση 2).
 - **Τα 11 «άτομα ενοικίου»** είναι ακόμη ξεχωριστή λίστα από μέλη και χρήστες. Θα ενοποιηθούν στα Οικονομικά (Φάση 6).
-- **Native iOS με Cloudflare Access**: απαιτεί εξαίρεση (bypass) για το `/api` (βλ. OPERATIONS §5).
+- **Μόνο web app**: το iOS κομμάτι (Face ID, Keychain, φάκελος `ios/`) αφαιρέθηκε μετά από απόφασή σου.
 
 ## Αποφάσεις που πήρα (μικρές, αναστρέψιμες)
 

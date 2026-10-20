@@ -68,7 +68,8 @@ Every create/update/delete writes `audit_log` in the same transaction: user, ent
 
 ## App (`apps/manager`)
 
-- `lib/api/` — `ApiClient` (cookies via the browser on web, Keychain-stored cookie jar on iOS), generated models.
+- `lib/api/` — `ApiClient` (session cookie handled by the browser), generated models. The app is web-only; the
+  `*_stub.dart` files exist only so unit tests compile on the Dart VM.
 - `lib/data/app_store.dart` — in-memory cache filled from `/bootstrap`; `create/update/remove` call the API, then
   replace the cached item with the server's version (or roll back and show the error). Screens are unchanged in
   structure; they now call these methods instead of writing to local storage.
@@ -80,7 +81,7 @@ Every create/update/delete writes `audit_log` in the same transaction: user, ent
 
 | Decision | Why |
 |---|---|
-| Keep Flutter for the internal app | ~10k lines of working UI; iOS app; approved by the owner |
+| Keep Flutter for the internal app (web build only) | ~10k lines of working UI; approved by the owner |
 | PostgreSQL, not SQLite/D1 | transactions and row locks for stock reservations, constraints, reporting |
 | Better Auth inside the API | self-hostable, no external identity provider, 2FA built in |
 | Hono + zod-openapi | small, typed, runs on Node (and Workers if ever needed) |

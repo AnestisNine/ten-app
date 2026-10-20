@@ -64,8 +64,6 @@ cp .env.example .env
    Μόνο αυτοί βλέπουν καν τη σελίδα σύνδεσης (Access στέλνει κωδικό στο email τους).
 2. Δεύτερη εφαρμογή για το `app.<domain>/ical` με policy **Bypass** (Everyone): τα ημερολόγια
    (Google/Apple) δεν μπορούν να περάσουν από Access. Τα feeds προστατεύονται από το μυστικό token τους.
-3. Αν χρησιμοποιηθεί το native iOS app: τρίτη εφαρμογή **Bypass** για `app.<domain>/api`. Τότε το API
-   προστατεύεται μόνο από το δικό μας login + 2FA + rate limiting (το web app συνεχίζει να περνά από Access).
 
 ## 6. Εκκίνηση
 
