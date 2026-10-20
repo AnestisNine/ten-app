@@ -5,29 +5,18 @@
 `https://app.thebonnienettles.com/api/public/...`. Μέχρι να στηθεί ο server, το site δείχνει «δεν υπάρχουν
 ανακοινωμένες συναυλίες» / «νέο merch σύντομα».
 
-## Ανάρτηση (μία φορά, ~5 λεπτά)
+## Ανάρτηση (Cloudflare Worker «ten-app»)
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create application**. Στη σελίδα που ανοίγει, διάλεξε **Pages**
-   (καρτέλα πάνω, ή σύνδεσμος στο κάτω μέρος «Looking to deploy Pages? Get started») → **Connect to Git**.
-   *Μην* προχωρήσεις με «Worker» / «Import a repository» της κεντρικής οθόνης — αυτό φτιάχνει Worker, όχι Pages.
-2. Σύνδεσε το GitHub και διάλεξε το repository **ten-app**.
-3. Ρυθμίσεις build:
-   | Πεδίο | Τιμή |
-   |---|---|
-   | Project name | `thebonnienettles` |
-   | Production branch | `main` |
-   | Framework preset | `None` |
-   | Build command | `npx pnpm@10.18.0 install --frozen-lockfile && npx pnpm@10.18.0 --filter @tbn/web build` |
-   | Build output directory | `apps/web/dist` |
-   | Root directory | *(κενό)* |
-4. **Environment variables** → πρόσθεσε:
-   - `NODE_VERSION` = `22`
-   - `PUBLIC_API_URL` = `https://app.thebonnienettles.com`
-5. **Save and Deploy**. Σε 1–2 λεπτά θα πάρεις μια διεύθυνση `https://thebonnienettles.pages.dev`.
-6. Στο project → **Custom domains** → **Set up a custom domain** → `thebonnienettles.com` → Activate.
-   Ξανά για `www.thebonnienettles.com`. Το Cloudflare φτιάχνει μόνο του τις εγγραφές DNS.
+Το site ανεβαίνει ως Cloudflare Worker με static assets. Όλες οι ρυθμίσεις βρίσκονται στο `wrangler.jsonc`
+(build command, φάκελος `apps/web/dist`, σελίδα 404) και στο `.node-version`.
 
-Από εκεί και πέρα, κάθε push στο `main` ανανεώνει αυτόματα το site.
+1. Cloudflare → **Workers & Pages** → **Create application** → **Import a repository** → GitHub → **ten-app**.
+   Τα πεδία build αφήνονται στις προεπιλογές (deploy command: `npx wrangler deploy`).
+2. Κάθε push στο `main` ανανεώνει αυτόματα το site. Δοκιμαστική διεύθυνση: `https://ten-app.<subdomain>.workers.dev`.
+3. Δικό σου domain: Worker **ten-app** → **Settings** → **Domains & Routes** → **Add** → **Custom domain** →
+   `thebonnienettles.com`, και ξανά για `www.thebonnienettles.com`. Το Cloudflare φτιάχνει μόνο του το DNS.
+
+Το API που διαβάζει το site είναι το `https://app.thebonnienettles.com` (`apps/web/src/site.config.ts`).
 
 ## Αλλαγές περιεχομένου
 
