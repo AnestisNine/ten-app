@@ -15,7 +15,7 @@
    | Project name | `thebonnienettles` |
    | Production branch | `main` |
    | Framework preset | `None` |
-   | Build command | `pnpm --filter @tbn/web build` |
+   | Build command | `npx pnpm@10.18.0 install --frozen-lockfile && npx pnpm@10.18.0 --filter @tbn/web build` |
    | Build output directory | `apps/web/dist` |
    | Root directory | *(κενό)* |
 4. **Environment variables** → πρόσθεσε:
