@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
+import '../core/image_utils.dart';
 import '../core/models.dart';
 import '../core/money.dart';
 import '../core/place_widgets.dart';
@@ -294,6 +296,32 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
           _section(
             'Site',
             [
+              Row(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 72,
+                      height: 72,
+                      child: imageProviderFromRef(live.posterUrl) == null
+                          ? const ColoredBox(
+                              color: Colors.black26,
+                              child: Icon(Icons.image_outlined),
+                            )
+                          : Image(image: imageProviderFromRef(live.posterUrl)!, fit: BoxFit.cover),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: AppStore.can('bookings', 'write') ? _pickPoster : null,
+                      icon: const Icon(Icons.upload_outlined),
+                      label: Text(live.posterUrl == null ? 'Ανέβασμα αφίσας' : 'Αλλαγή αφίσας'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               TextField(
                 controller: ticketUrl,
                 keyboardType: TextInputType.url,
@@ -555,6 +583,19 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
   }
 
   int _money(String value) => parseCents(value) ?? 0;
+
+  Future<void> _pickPoster() async {
+    final image = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1600,
+      maxHeight: 1600,
+      imageQuality: 85,
+    );
+    if (image == null) return;
+    final bytes = await image.readAsBytes();
+    await AppStore.uploadLivePoster(widget.live, bytes, 'poster.jpg');
+    if (mounted) setState(() {});
+  }
 
   int _int(String value) {
     return int.tryParse(value) ?? 0;

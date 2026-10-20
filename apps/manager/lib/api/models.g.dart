@@ -113,6 +113,7 @@ class LiveItem {
     this.ticketsDoor = 0,
     this.generalInfo = '',
     this.ticketUrl,
+    this.posterUrl,
   });
 
   factory LiveItem.fromJson(Map<String, dynamic> json) => LiveItem(
@@ -143,6 +144,7 @@ class LiveItem {
         ticketsDoor: (json['ticketsDoor'] as num).toInt(),
         generalInfo: (json['generalInfo'] as String?) ?? '',
         ticketUrl: json['ticketUrl'] as String?,
+        posterUrl: json['posterUrl'] as String?,
       );
 
   final String id;
@@ -172,6 +174,7 @@ class LiveItem {
   int ticketsDoor;
   String generalInfo;
   String? ticketUrl;
+  String? posterUrl;
 
   /// JSON for the API. Server-assigned fields are left out.
   Map<String, dynamic> toJson() => {
@@ -204,7 +207,7 @@ class LiveItem {
         'ticketUrl': ticketUrl,
       };
 
-  LiveItem copy() => LiveItem.fromJson({...toJson(), });
+  LiveItem copy() => LiveItem.fromJson({...toJson(), 'posterUrl': posterUrl});
 
   @override
   bool operator ==(Object other) => other is LiveItem && other.id == id;

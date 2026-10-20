@@ -1,0 +1,2 @@
+ALTER TABLE "lives" ADD COLUMN "poster_file_id" uuid;--> statement-breakpoint
+ALTER TABLE "lives" ADD CONSTRAINT "lives_poster_file_id_files_id_fk" FOREIGN KEY ("poster_file_id") REFERENCES "public"."files"("id") ON DELETE set null ON UPDATE no action;

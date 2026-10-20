@@ -21,6 +21,22 @@ export const site = {
     bandcamp: 'https://thebonnienettles.bandcamp.com',
     appleMusic: '',
   },
+  /**
+   * Shows listed on the site while the app's server is not online yet. As soon as the app answers,
+   * its confirmed shows replace this list — from then on add shows in the app (with ticket link + poster).
+   * `poster` is a file in public/images/posters/ (optional); `ticketUrl` is the ticket page (e.g. more.com).
+   */
+  shows: [
+    {
+      date: '2026-12-12',
+      city: 'Athens',
+      venue: 'Ilion Plus',
+      country: 'Greece',
+      support: '',
+      ticketUrl: '',
+      poster: '',
+    },
+  ] as { date: string; city: string; venue: string; country: string; support: string; ticketUrl: string; poster: string }[],
   /** Newest first. `cover` is a file in public/images/; year/type are shown when filled in. */
   releases: [
     {

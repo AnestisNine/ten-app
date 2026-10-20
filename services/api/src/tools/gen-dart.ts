@@ -43,7 +43,7 @@ const ENUMS: [z.ZodEnum, string][] = [
 ];
 
 /** Fields the server assigns; they are never sent back. */
-const SERVER_FIELDS = new Set(['number', 'createdAt', 'ownerId', 'imageUrl']);
+const SERVER_FIELDS = new Set(['number', 'createdAt', 'ownerId', 'imageUrl', 'posterUrl']);
 
 type Json = Record<string, any>;
 interface DartType {

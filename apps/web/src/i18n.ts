@@ -12,7 +12,7 @@ export const t = {
     upcoming: 'Upcoming shows',
     allDates: 'All dates',
     tickets: 'Tickets',
-    soon: 'Soon',
+    soon: 'Tickets soon',
     noShows: 'No shows announced right now. Join the newsletter to hear first.',
     loading: 'Loading…',
     loadError: 'Could not load. Please try again shortly.',

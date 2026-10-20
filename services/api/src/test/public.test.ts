@@ -21,7 +21,24 @@ describe('public website API', () => {
     expect(res.json.items.map((s: { venue: string }) => s.venue)).toEqual(['Gagarin 205']);
     expect(res.json.items[0].ticketUrl).toBe('https://tickets.example/gagarin');
     // No money or internal fields leak.
-    expect(Object.keys(res.json.items[0]).sort()).toEqual(['city', 'country', 'countryCode', 'date', 'id', 'support', 'ticketUrl', 'venue']);
+    expect(Object.keys(res.json.items[0]).sort()).toEqual(['city', 'country', 'countryCode', 'date', 'id', 'posterUrl', 'support', 'ticketUrl', 'venue']);
+  });
+
+  it('serves the poster of a confirmed show to the public', async () => {
+    const { signInWith2fa } = await import('./harness.js');
+    const manager = (await signInWith2fa(t.app, 'manager@tbn.local')).client;
+    const live = (await site.get('/api/public/shows')).json.items[0];
+    const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    const form = new FormData();
+    form.append('file', new File([png], 'poster.png', { type: 'image/png' }));
+    const up = await manager.put(`/api/v1/lives/${live.id}/poster`, form);
+    expect(up.status).toBe(200);
+    expect((await manager.get(`/api/v1/lives/${live.id}`)).json.posterUrl).toBe(up.json.posterUrl);
+    const shows = (await site.get('/api/public/shows')).json.items;
+    expect(shows[0].posterUrl).toBe(`/api/public/shows/${live.id}/poster`);
+    const img = await site.get(shows[0].posterUrl);
+    expect(img.status).toBe(200);
+    expect(img.headers.get('content-type')).toBe('image/png');
   });
 
   it('lists products without cost or stock numbers', async () => {

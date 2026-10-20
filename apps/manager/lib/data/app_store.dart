@@ -313,6 +313,20 @@ class AppStore {
     }
   }
 
+  /// Poster / artwork of a live, shown on the website for confirmed shows.
+  static Future<String?> uploadLivePoster(LiveItem live, List<int> bytes, String filename) async {
+    try {
+      final json = await api.upload('/api/v1/lives/${live.id}/poster', Uint8List.fromList(bytes), filename)
+          as Map<String, dynamic>;
+      live.posterUrl = json['posterUrl'] as String;
+      _changed();
+      return live.posterUrl;
+    } on ApiException catch (err) {
+      _report(err);
+      return null;
+    }
+  }
+
   // ------------------------------------------------------------------ members
 
   static Future<bool> saveMember(MemberProfile m, {required bool isNew}) async {

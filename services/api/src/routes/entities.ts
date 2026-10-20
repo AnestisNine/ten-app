@@ -24,6 +24,10 @@ export const ENTITY_DEFS: EntityDef[] = [
     ...entities.lives,
     label: (o) => `${str(o.venue)} ${str(o.date)}`,
     orderBy: s.lives.date,
+    toApi: ({ posterFileId, ...row }) => ({
+      ...row,
+      posterUrl: posterFileId ? `/api/v1/files/${str(posterFileId)}` : null,
+    }),
   },
   {
     name: 'CalendarEvent',

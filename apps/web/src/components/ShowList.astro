@@ -1,21 +1,47 @@
 ---
 import { t, type Lang } from '../i18n';
+import { site } from '../site.config';
 interface Props {
   lang: Lang;
-  /** Show at most this many (home page). */
+  /** Show at most this many. */
   limit?: number;
 }
 const { lang, limit } = Astro.props;
 const s = t[lang];
-const labels = { tickets: s.tickets, soon: s.soon, none: s.noShows, error: s.loadError, support: s.support };
+const labels = { tickets: s.tickets, soon: s.soon, none: s.noShows, support: s.support };
+const today = new Date().toISOString().slice(0, 10);
+const shows = site.shows.filter((show) => show.date >= today).slice(0, limit ?? Infinity);
+
+const day = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+const extra = (date: string) => {
+  const d = new Date(`${date}T12:00:00`);
+  return `${d.toLocaleDateString('en-GB', { weekday: 'short' })} · ${d.getFullYear()}`;
+};
 ---
-<div class="show-list" data-lang={lang} data-limit={limit ?? ''} data-labels={JSON.stringify(labels)}>
-  <p class="status" aria-live="polite">{s.loading}</p>
-  <ul class="shows" hidden></ul>
-  <noscript><p class="status">{s.noShows}</p></noscript>
+<div class="show-list" data-limit={limit ?? ''} data-labels={JSON.stringify(labels)}>
+  {shows.length === 0 && <p class="status" aria-live="polite">{s.noShows}</p>}
+  <ul class="shows" hidden={shows.length === 0}>
+    {shows.map((show) => (
+      <li class="show">
+        <div class="show-poster">
+          {show.poster
+            ? <img src={`/images/posters/${show.poster}`} alt={`${show.venue} poster`} loading="lazy" width="160" height="160" />
+            : <img class="placeholder" src="/images/logo.png" alt="" width="160" height="80" />}
+        </div>
+        <div class="show-date"><time datetime={show.date}>{day(show.date)}</time><small>{extra(show.date)}</small></div>
+        <div class="show-place">
+          <strong>{show.city}</strong>
+          <span>{show.venue}, {show.country}{show.support ? ` · ${s.support} ${show.support}` : ''}</span>
+        </div>
+        {show.ticketUrl
+          ? <a class="btn primary" href={show.ticketUrl} target="_blank" rel="noopener">{s.tickets}</a>
+          : <span class="btn" aria-disabled="true">{s.soon}</span>}
+      </li>
+    ))}
+  </ul>
 </div>
 <script>
-  import { escapeHtml, getJson } from '../lib/api';
+  import { apiUrl, escapeHtml, getJson } from '../lib/api';
 
   interface Show {
     id: string;
@@ -25,44 +51,43 @@ const labels = { tickets: s.tickets, soon: s.soon, none: s.noShows, error: s.loa
     country: string;
     support: string;
     ticketUrl: string | null;
+    posterUrl: string | null;
   }
 
+  // When the app's server is reachable, its confirmed shows replace the list built into the page.
   for (const el of document.querySelectorAll<HTMLElement>('.show-list')) {
-    const lang = el.dataset.lang ?? 'en';
     const limit = Number(el.dataset.limit) || Infinity;
     const l = JSON.parse(el.dataset.labels ?? '{}');
-    const status = el.querySelector('.status')!;
     const list = el.querySelector<HTMLUListElement>('.shows')!;
-    const locale = 'en-GB';
     getJson<{ items: Show[] }>('/api/public/shows')
       .then(({ items }) => {
-        if (items.length === 0) {
-          status.textContent = l.none;
-          return;
-        }
+        if (items.length === 0) return;
         list.innerHTML = items
           .slice(0, limit)
           .map((show) => {
             const d = new Date(`${show.date}T12:00:00`);
-            const day = d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
-            const extra = `${d.toLocaleDateString(locale, { weekday: 'short' })} · ${d.getFullYear()}`;
+            const day = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+            const extra = `${d.toLocaleDateString('en-GB', { weekday: 'short' })} · ${d.getFullYear()}`;
+            const poster = show.posterUrl
+              ? `<img src="${apiUrl()}${escapeHtml(show.posterUrl)}" alt="${escapeHtml(show.venue)} poster" loading="lazy" width="160" height="160">`
+              : `<img class="placeholder" src="/images/logo.png" alt="" width="160" height="80">`;
             const ticket = show.ticketUrl
               ? `<a class="btn primary" href="${escapeHtml(show.ticketUrl)}" target="_blank" rel="noopener">${l.tickets}</a>`
               : `<span class="btn" aria-disabled="true">${l.soon}</span>`;
             const support = show.support ? ` · ${l.support} ${escapeHtml(show.support)}` : '';
             return `<li class="show">
+              <div class="show-poster">${poster}</div>
               <div class="show-date"><time datetime="${show.date}">${escapeHtml(day)}</time><small>${escapeHtml(extra)}</small></div>
               <div class="show-place"><strong>${escapeHtml(show.city)}</strong><span>${escapeHtml(show.venue)}, ${escapeHtml(show.country)}${support}</span></div>
               ${ticket}
             </li>`;
           })
           .join('');
-        status.remove();
+        el.querySelector('.status')?.remove();
         list.hidden = false;
       })
       .catch(() => {
-        // Visitors see the same friendly message as "nothing announced" if the API is unreachable.
-        status.textContent = l.none;
+        // Server not reachable: keep the list that is built into the page.
       });
   }
 </script>

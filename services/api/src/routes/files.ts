@@ -5,7 +5,7 @@ import { mkdir, readFile, unlink, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import type { App } from '../context.js';
-import { files, products } from '../db/schema.js';
+import { files, lives, products } from '../db/schema.js';
 import { writeAudit } from '../audit.js';
 import { ApiError } from '../errors.js';
 import { clientIp, requirePermission } from '../middleware.js';
@@ -25,24 +25,44 @@ export function sniffImage(buf: Uint8Array): 'image/jpeg' | 'image/png' | 'image
   return null;
 }
 
-export function registerFileRoutes(app: App) {
+interface ImageTarget {
+  /** e.g. /api/v1/products/{id}/image */
+  path: string;
+  tag: string;
+  table: typeof products | typeof lives;
+  column: 'imageFileId' | 'posterFileId';
+  resource: Resource;
+  /** Sub-folder under FILES_DIR and audit entity name. */
+  folder: string;
+  responseKey: 'imageUrl' | 'posterUrl';
+}
+
+/** PUT multipart image for one row: stores the file, points the row at it, removes the old file. */
+function registerImageUpload(app: App, target: ImageTarget) {
   app.openapi(
     createRoute({
       method: 'put',
-      path: '/api/v1/products/{id}/image',
-      tags: ['products'],
-      middleware: [requirePermission('merch', 'write')] as const,
+      path: target.path,
+      tags: [target.tag],
+      middleware: [requirePermission(target.resource, 'write')] as const,
       request: {
         params: z.object({ id: z.uuid() }),
         body: { content: { 'multipart/form-data': { schema: z.object({ file: z.any() }) } }, required: true },
       },
-      responses: { 200: { description: 'Image stored', content: { 'application/json': { schema: z.object({ imageUrl: z.string() }) } } } },
+      responses: {
+        200: {
+          description: 'Image stored',
+          content: { 'application/json': { schema: z.record(z.string(), z.string()) } },
+        },
+      },
     }),
     async (c) => {
       const { db, config } = c.var.deps;
       const { id } = c.req.valid('param');
-      const product = await db.query.products.findFirst({ where: eq(products.id, id) });
-      if (!product) throw new ApiError('not_found');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const table = target.table as any;
+      const [row] = (await db.select().from(table).where(eq(table.id, id)).limit(1)) as Record<string, unknown>[];
+      if (!row) throw new ApiError('not_found');
       const body = await c.req.parseBody();
       const file = body.file;
       if (!(file instanceof File)) throw new ApiError('validation_failed', 'Missing file');
@@ -52,23 +72,23 @@ export function registerFileRoutes(app: App) {
       if (!mime) throw new ApiError('validation_failed', 'Only JPEG, PNG or WebP images');
 
       const fileId = randomUUID();
-      const key = join('products', `${fileId}.${mime.split('/')[1]}`);
+      const key = join(target.folder, `${fileId}.${mime.split('/')[1]}`);
       const dir = resolve(config.FILES_DIR);
-      await mkdir(join(dir, 'products'), { recursive: true });
+      await mkdir(join(dir, target.folder), { recursive: true });
       await writeFile(join(dir, key), buf);
-      const oldFileId = product.imageFileId;
+      const oldFileId = row[target.column] as string | null;
       await db.transaction(async (tx) => {
         await tx.insert(files).values({
           id: fileId,
           ownerId: c.var.user!.id,
-          resource: 'merch',
+          resource: target.resource,
           mimeType: mime,
           sizeBytes: buf.length,
           storageKey: key,
           originalName: file.name.slice(0, 200),
         });
-        await tx.update(products).set({ imageFileId: fileId }).where(eq(products.id, id));
-        await writeAudit(tx, { user: c.var.user, entity: 'products', entityId: id, action: 'update', summary: 'image', ip: clientIp(c) });
+        await tx.update(table).set({ [target.column]: fileId }).where(eq(table.id, id));
+        await writeAudit(tx, { user: c.var.user, entity: target.folder, entityId: id, action: 'update', summary: target.responseKey, ip: clientIp(c) });
       });
       if (oldFileId) {
         const old = await db.query.files.findFirst({ where: eq(files.id, oldFileId) });
@@ -77,9 +97,30 @@ export function registerFileRoutes(app: App) {
           await unlink(join(dir, old.storageKey)).catch(() => {});
         }
       }
-      return c.json({ imageUrl: `/api/v1/files/${fileId}` }, 200);
+      return c.json({ [target.responseKey]: `/api/v1/files/${fileId}` }, 200);
     },
   );
+}
+
+export function registerFileRoutes(app: App) {
+  registerImageUpload(app, {
+    path: '/api/v1/products/{id}/image',
+    tag: 'products',
+    table: products,
+    column: 'imageFileId',
+    resource: 'merch',
+    folder: 'products',
+    responseKey: 'imageUrl',
+  });
+  registerImageUpload(app, {
+    path: '/api/v1/lives/{id}/poster',
+    tag: 'lives',
+    table: lives,
+    column: 'posterFileId',
+    resource: 'bookings',
+    folder: 'lives',
+    responseKey: 'posterUrl',
+  });
 
   app.get('/api/v1/files/:id', async (c) => {
     const id = c.req.param('id');

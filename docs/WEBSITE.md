@@ -31,7 +31,11 @@ Merch, About, Contact) κατεβαίνει στην αντίστοιχη ενό
 - Links (Instagram, Spotify, Bandcamp…), email, δισκογραφία: `apps/web/src/site.config.ts`
 - Φωτογραφία κεντρικής εικόνας: βάλε `apps/web/public/images/hero.jpg` και ενεργοποίησε τη γραμμή στο
   `apps/web/src/pages/index.astro`
-- Συναυλίες: από το app (status «Επιβεβαιωμένο» + «Link εισιτηρίων» στη σελίδα του live)
+- Συναυλίες:
+  - **τώρα (χωρίς server):** στη λίστα `shows` του `apps/web/src/site.config.ts` — ημερομηνία, πόλη, venue,
+    `ticketUrl` (π.χ. more.com) και `poster` (αρχείο στο `apps/web/public/images/posters/`).
+  - **μόλις τρέχει ο server:** από το app — status «Επιβεβαιωμένο», «Link εισιτηρίων» και «Ανέβασμα αφίσας» στη
+    σελίδα του live. Τότε η λίστα του app αντικαθιστά αυτόματα τη στατική.
 - Merch: από το app (Merch → Products). Το κουμπί «Αγορά στο Bandcamp» εμφανίζεται όταν συμπληρωθεί το `bandcampUrl`.
 
 ## Φόρμες

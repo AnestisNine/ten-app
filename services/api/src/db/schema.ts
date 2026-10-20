@@ -137,6 +137,8 @@ export const lives = pgTable(
     ticketsDoor: integer('tickets_door').notNull().default(0),
     generalInfo: text('general_info').notNull().default(''),
     ticketUrl: text('ticket_url'),
+    /** Poster / artwork shown on the website. */
+    posterFileId: uuid('poster_file_id').references(() => files.id, { onDelete: 'set null' }),
     ...timestamps,
   },
   (t) => [index('lives_date_idx').on(t.date)],

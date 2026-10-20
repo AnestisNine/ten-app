@@ -70,6 +70,8 @@ export const Live = z.object({
   generalInfo: longText,
   /** Public ticket link shown on the website for confirmed shows. */
   ticketUrl: z.union([z.url({ protocol: /^https?$/ }).max(500), z.literal('')]).nullable(),
+  /** Server path of the uploaded poster; null when none. Set via PUT /lives/{id}/poster. */
+  posterUrl: z.string().max(500).nullable(),
 });
 
 export const Product = z.object({
@@ -227,6 +229,7 @@ export const PublicShow = z.object({
   countryCode: z.string().nullable(),
   support: z.string(),
   ticketUrl: z.string().nullable(),
+  posterUrl: z.string().nullable(),
 });
 
 export const PublicProduct = z.object({
@@ -268,7 +271,7 @@ const createOf = <T extends z.ZodRawShape>(s: z.ZodObject<T>, omit: string[] = [
 
 export const entities = {
   tours: { schema: Tour, create: createOf(Tour) },
-  lives: { schema: Live, create: createOf(Live) },
+  lives: { schema: Live, create: createOf(Live, ['posterUrl']) },
   products: { schema: Product, create: createOf(Product, ['imageUrl']) },
   customers: { schema: Customer, create: createOf(Customer) },
   orders: { schema: Order, create: createOf(Order, ['number', 'createdAt']) },

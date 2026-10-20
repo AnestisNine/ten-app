@@ -9,6 +9,7 @@ import { and, asc, eq, gte, isNull } from 'drizzle-orm';
 import { readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { cors } from 'hono/cors';
+import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { splitList } from '../config.js';
 import type { App, AppEnv } from '../context.js';
@@ -32,6 +33,17 @@ export function rateLimit(max: number, windowMs: number) {
     if (hits.size > 10_000) for (const [k, v] of hits) if (v.reset < now) hits.delete(k);
     await next();
   });
+}
+
+async function servePublicFile(c: Context<AppEnv>, fileId: string) {
+  const { db, config } = c.var.deps;
+  const file = await db.query.files.findFirst({ where: eq(files.id, fileId) });
+  if (!file) return c.notFound();
+  const data = await readFile(join(resolve(config.FILES_DIR), file.storageKey));
+  c.header('Content-Type', file.mimeType);
+  c.header('Cache-Control', 'public, max-age=86400');
+  c.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  return c.body(data);
 }
 
 const today = () => new Date().toISOString().slice(0, 10);
@@ -86,6 +98,7 @@ export function registerPublicRoutes(app: App) {
               countryCode: l.countryCode,
               support: l.support,
               ticketUrl: l.ticketUrl || null,
+              posterUrl: l.posterFileId ? `/api/public/shows/${l.id}/poster` : null,
             }),
           ),
         },
@@ -121,19 +134,23 @@ export function registerPublicRoutes(app: App) {
     },
   );
 
+  app.get('/api/public/shows/:id/poster', async (c) => {
+    const id = c.req.param('id');
+    if (!z.uuid().safeParse(id).success) return c.notFound();
+    const { db } = c.var.deps;
+    const live = await db.query.lives.findFirst({ where: eq(lives.id, id) });
+    // Only posters of shows that are public (confirmed) are served.
+    if (!live?.posterFileId || live.status !== 'confirmed') return c.notFound();
+    return servePublicFile(c, live.posterFileId);
+  });
+
   app.get('/api/public/products/:id/image', async (c) => {
     const id = c.req.param('id');
     if (!z.uuid().safeParse(id).success) return c.notFound();
-    const { db, config } = c.var.deps;
+    const { db } = c.var.deps;
     const product = await db.query.products.findFirst({ where: eq(products.id, id) });
     if (!product?.imageFileId) return c.notFound();
-    const file = await db.query.files.findFirst({ where: eq(files.id, product.imageFileId) });
-    if (!file) return c.notFound();
-    const data = await readFile(join(resolve(config.FILES_DIR), file.storageKey));
-    c.header('Content-Type', file.mimeType);
-    c.header('Cache-Control', 'public, max-age=86400');
-    c.header('Cross-Origin-Resource-Policy', 'cross-origin');
-    return c.body(data);
+    return servePublicFile(c, product.imageFileId);
   });
 
   app.openapi(
