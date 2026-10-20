@@ -163,7 +163,10 @@ export async function seed(db: Db, encryptionKey: string) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  if (process.env.NODE_ENV === 'production') throw new Error('Refusing to seed a production database');
+  // Wipes all data. In production only for a throw-away preview, explicitly: ALLOW_DEMO_SEED=1.
+  if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO_SEED !== '1') {
+    throw new Error('Refusing to seed a production database (set ALLOW_DEMO_SEED=1 for a demo instance)');
+  }
   const url = process.env.DATABASE_URL;
   const key = process.env.DATA_ENCRYPTION_KEY;
   if (!url || !key) throw new Error('DATABASE_URL and DATA_ENCRYPTION_KEY must be set');

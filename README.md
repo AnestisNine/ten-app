@@ -11,7 +11,7 @@ Phase 3, the band's public website. One source of truth: a PostgreSQL database b
 | Public website | `apps/web` | Phase 3 (Astro) |
 | Ops | `Dockerfile`, `docker-compose.yml`, `.github/workflows` | Docker, Cloudflare Tunnel, GitHub Actions → GHCR |
 
-Docs: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/OPERATIONS.md`](docs/OPERATIONS.md) (install on the server,
+Docs: [`docs/PREVIEW.md`](docs/PREVIEW.md) (try it locally) · [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/OPERATIONS.md`](docs/OPERATIONS.md) (install on the server,
 tunnel, backups, security) · [`docs/PHASE0_AUDIT.md`](docs/PHASE0_AUDIT.md) · [`docs/PHASE1_REPORT.md`](docs/PHASE1_REPORT.md)
 
 ## Development setup

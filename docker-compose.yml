@@ -22,7 +22,7 @@ services:
     # Not published on the host: only the app container can reach it.
 
   app:
-    image: ${TBN_IMAGE:-ghcr.io/OWNER/tbn-manager:latest}
+    image: ${TBN_IMAGE:-ghcr.io/anestisnine/tbn-manager:latest}
     build: .
     restart: unless-stopped
     depends_on:
@@ -45,7 +45,7 @@ services:
     restart: unless-stopped
     command: tunnel --no-autoupdate run
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:?set CLOUDFLARE_TUNNEL_TOKEN in .env}
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
     depends_on:
       - app
 
