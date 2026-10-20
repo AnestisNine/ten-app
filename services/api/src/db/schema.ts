@@ -170,12 +170,26 @@ export const calendarFeeds = pgTable('calendar_feeds', {
 export const products = pgTable('products', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
-  stock: integer('stock').notNull().default(0),
   unitCostCents: integer('unit_cost_cents').notNull().default(0),
   salePriceCents: integer('sale_price_cents').notNull().default(0),
   imageFileId: uuid('image_file_id').references(() => files.id, { onDelete: 'set null' }),
   ...timestamps,
 });
+
+export const productVariants = pgTable(
+  'product_variants',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    productId: uuid('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    label: text('label').notNull(),
+    stock: integer('stock').notNull().default(0),
+    sortOrder: integer('sort_order').notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [index('product_variants_product_idx').on(t.productId)],
+);
 
 export const customers = pgTable('customers', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -199,6 +213,7 @@ export const orders = pgTable('orders', {
   productId: uuid('product_id')
     .notNull()
     .references(() => products.id, { onDelete: 'restrict' }),
+  variantId: uuid('variant_id').references(() => productVariants.id, { onDelete: 'set null' }),
   quantity: integer('quantity').notNull(),
   shippingCostCents: integer('shipping_cost_cents').notNull().default(0),
   shippingMethod: text('shipping_method').notNull(),

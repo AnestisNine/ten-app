@@ -37,6 +37,7 @@ class AppStore {
   static final tours = <TourItem>[];
   static final lives = <LiveItem>[];
   static final products = <ProductItem>[];
+  static final productVariants = <ProductVariant>[];
   static final customers = <CustomerItem>[];
   static final orders = <OrderItem>[];
   static final calendar = <CalendarItem>[];
@@ -54,6 +55,14 @@ class AppStore {
 
   static ProductItem? productById(String id) => _byId(products, id, (p) => p.id);
   static CustomerItem? customerById(String id) => _byId(customers, id, (c) => c.id);
+  static ProductVariant? variantById(String? id) => id == null ? null : _byId(productVariants, id, (v) => v.id);
+
+  /// Sizes of a product in display order.
+  static List<ProductVariant> variantsOf(String productId) =>
+      productVariants.where((v) => v.productId == productId).toList()..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+  /// Total stock over all sizes.
+  static int stockOf(String productId) => variantsOf(productId).fold(0, (sum, v) => sum + v.stock);
 
   static T? _byId<T>(List<T> list, String id, String Function(T) idOf) {
     for (final e in list) {
@@ -158,6 +167,7 @@ class AppStore {
     _replace(tours, rows('tours').map(TourItem.fromJson));
     _replace(lives, rows('lives').map(LiveItem.fromJson));
     _replace(products, rows('products').map(ProductItem.fromJson));
+    _replace(productVariants, rows('product-variants').map(ProductVariant.fromJson));
     _replace(customers, rows('customers').map(CustomerItem.fromJson));
     _replace(orders, rows('orders').map(OrderItem.fromJson));
     _replace(calendar, rows('calendar-events').map(CalendarItem.fromJson));
@@ -196,6 +206,7 @@ class AppStore {
       tours,
       lives,
       products,
+      productVariants,
       customers,
       orders,
       calendar,
@@ -219,6 +230,8 @@ class AppStore {
     TourItem: _Entity<TourItem>('tours', tours, TourItem.fromJson, (e) => e.toJson(), (e) => e.id),
     LiveItem: _Entity<LiveItem>('lives', lives, LiveItem.fromJson, (e) => e.toJson(), (e) => e.id),
     ProductItem: _Entity<ProductItem>('products', products, ProductItem.fromJson, (e) => e.toJson(), (e) => e.id),
+    ProductVariant: _Entity<ProductVariant>(
+        'product-variants', productVariants, ProductVariant.fromJson, (e) => e.toJson(), (e) => e.id),
     CustomerItem: _Entity<CustomerItem>('customers', customers, CustomerItem.fromJson, (e) => e.toJson(), (e) => e.id),
     OrderItem: _Entity<OrderItem>('orders', orders, OrderItem.fromJson, (e) => e.toJson(), (e) => e.id),
     CalendarItem:

@@ -29,6 +29,7 @@ const Map<Type, String> apiPaths = {
   TourItem: 'tours',
   LiveItem: 'lives',
   ProductItem: 'products',
+  ProductVariant: 'product-variants',
   CustomerItem: 'customers',
   OrderItem: 'orders',
   CalendarItem: 'calendar-events',
@@ -220,7 +221,6 @@ class ProductItem {
   ProductItem({
     required this.id,
     this.name = '',
-    this.stock = 0,
     this.unitCostCents = 0,
     this.salePriceCents = 0,
     this.imageUrl,
@@ -229,7 +229,6 @@ class ProductItem {
   factory ProductItem.fromJson(Map<String, dynamic> json) => ProductItem(
         id: (json['id'] as String?) ?? '',
         name: (json['name'] as String?) ?? '',
-        stock: (json['stock'] as num).toInt(),
         unitCostCents: (json['unitCostCents'] as num).toInt(),
         salePriceCents: (json['salePriceCents'] as num).toInt(),
         imageUrl: json['imageUrl'] as String?,
@@ -237,7 +236,6 @@ class ProductItem {
 
   final String id;
   String name;
-  int stock;
   int unitCostCents;
   int salePriceCents;
   String? imageUrl;
@@ -246,7 +244,6 @@ class ProductItem {
   Map<String, dynamic> toJson() => {
         'id': id,
         'name': name,
-        'stock': stock,
         'unitCostCents': unitCostCents,
         'salePriceCents': salePriceCents,
       };
@@ -255,6 +252,47 @@ class ProductItem {
 
   @override
   bool operator ==(Object other) => other is ProductItem && other.id == id;
+
+  @override
+  int get hashCode => id.hashCode;
+}
+
+class ProductVariant {
+  ProductVariant({
+    required this.id,
+    this.productId = '',
+    this.label = '',
+    this.stock = 0,
+    this.sortOrder = 0,
+  });
+
+  factory ProductVariant.fromJson(Map<String, dynamic> json) => ProductVariant(
+        id: (json['id'] as String?) ?? '',
+        productId: (json['productId'] as String?) ?? '',
+        label: (json['label'] as String?) ?? '',
+        stock: (json['stock'] as num).toInt(),
+        sortOrder: (json['sortOrder'] as num).toInt(),
+      );
+
+  final String id;
+  String productId;
+  String label;
+  int stock;
+  int sortOrder;
+
+  /// JSON for the API. Server-assigned fields are left out.
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'productId': productId,
+        'label': label,
+        'stock': stock,
+        'sortOrder': sortOrder,
+      };
+
+  ProductVariant copy() => ProductVariant.fromJson({...toJson(), });
+
+  @override
+  bool operator ==(Object other) => other is ProductVariant && other.id == id;
 
   @override
   int get hashCode => id.hashCode;
@@ -323,6 +361,7 @@ class OrderItem {
     this.number = 0,
     this.customerId = '',
     this.productId = '',
+    this.variantId,
     this.quantity = 0,
     this.shippingCostCents = 0,
     required this.shippingMethod,
@@ -339,6 +378,7 @@ class OrderItem {
         number: (json['number'] as num).toInt(),
         customerId: (json['customerId'] as String?) ?? '',
         productId: (json['productId'] as String?) ?? '',
+        variantId: json['variantId'] as String?,
         quantity: (json['quantity'] as num).toInt(),
         shippingCostCents: (json['shippingCostCents'] as num).toInt(),
         shippingMethod: ShippingMethod.values.byName(json['shippingMethod'] as String),
@@ -354,6 +394,7 @@ class OrderItem {
   int number;
   String customerId;
   String productId;
+  String? variantId;
   int quantity;
   int shippingCostCents;
   ShippingMethod shippingMethod;
@@ -369,6 +410,7 @@ class OrderItem {
         'id': id,
         'customerId': customerId,
         'productId': productId,
+        'variantId': variantId,
         'quantity': quantity,
         'shippingCostCents': shippingCostCents,
         'shippingMethod': shippingMethod.name,

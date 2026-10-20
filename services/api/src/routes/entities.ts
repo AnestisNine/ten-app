@@ -60,6 +60,15 @@ export const ENTITY_DEFS: EntityDef[] = [
     }),
   },
   {
+    name: 'ProductVariant',
+    path: 'product-variants',
+    table: s.productVariants,
+    resource: 'merch',
+    ...entities.productVariants,
+    label: (o) => `size ${str(o.label)}`,
+    orderBy: s.productVariants.sortOrder,
+  },
+  {
     name: 'Customer',
     path: 'customers',
     table: s.customers,

@@ -48,10 +48,10 @@ TBN API listening on :8080
 
 | Email | Ρόλος | Τι θα δεις |
 |---|---|---|
-| `member@tbn.local` | Μέλος | Μπαίνει κατευθείαν· βλέπει τα πάντα, αλλάζει μόνο το ημερολόγιο |
-| `admin@tbn.local` | Admin | Ζητά ενεργοποίηση 2FA (θέλει Google Authenticator ή παρόμοιο στο κινητό), μετά έχει πλήρη πρόσβαση + «Menu → Χρήστες» |
-| `manager@tbn.local` | Manager | 2FA, μετά επεξεργάζεται τα πάντα εκτός από χρήστες |
-| `accountant@tbn.local` | Λογιστής | 2FA, μόνο ανάγνωση |
+| `member@tbn.local` | Μέλος | Βλέπει τα πάντα, αλλάζει **μόνο** το ημερολόγιο |
+| `admin@tbn.local` | Admin | **Πλήρης πρόσβαση** — χρησιμοποίησέ τον για να δοκιμάζεις (στο preview χωρίς 2FA) |
+| `manager@tbn.local` | Manager | Επεξεργάζεται τα πάντα εκτός από χρήστες |
+| `accountant@tbn.local` | Λογιστής | Μόνο ανάγνωση |
 | `merch@tbn.local` | Merch | Χωρίς 2FA, μόνο merch / παραγγελίες |
 
 Κωδικός για όλους: **`tbn-preview`**

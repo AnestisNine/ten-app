@@ -1,9 +1,7 @@
-import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
 import '../core/widgets.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../core/image_utils.dart';
 import '../core/models.dart';
@@ -11,6 +9,7 @@ import '../core/money.dart';
 import '../core/theme.dart';
 import '../data/app_store.dart';
 import 'order_detail_screen.dart';
+import 'product_edit_screen.dart';
 
 class MerchScreen extends StatefulWidget {
   const MerchScreen({super.key});
@@ -21,7 +20,6 @@ class MerchScreen extends StatefulWidget {
 
 class _MerchScreenState extends State<MerchScreen> {
   int tab = 1;
-  final ImagePicker _imagePicker = ImagePicker();
 
   static const _tabs = <String>['Stock', 'Orders', 'Products', 'Customers'];
 
@@ -40,7 +38,7 @@ class _MerchScreenState extends State<MerchScreen> {
               if ((tab == 1 && AppStore.can('orders', 'write') && AppStore.can('customers', 'read')) ||
                   (tab == 2 && AppStore.can('merch', 'write')))
                 FilledButton.icon(
-                  onPressed: tab == 1 ? _addOrganicOrder : _addProduct,
+                  onPressed: tab == 1 ? _addOrganicOrder : () => _openProduct(null),
                   icon: const Icon(Icons.add_rounded, size: 20),
                   label: Text(tab == 1 ? 'Παραγγελία' : 'Προϊόν'),
                   style: FilledButton.styleFrom(
@@ -83,37 +81,54 @@ class _MerchScreenState extends State<MerchScreen> {
         title: 'Δεν υπάρχουν προϊόντα',
       );
     }
+    final low = AppStore.settings.value.lowStockThreshold;
+    Color colorFor(int n) => n == 0
+        ? TbnColors.danger
+        : n <= low
+            ? TbnColors.warning
+            : TbnColors.success;
     return Column(
       children: AppStore.products.map((product) {
-        final soldOut = product.stock == 0;
-        final low = !soldOut && product.stock <= 3;
-        final color = soldOut
-            ? TbnColors.danger
-            : low
-                ? TbnColors.warning
-                : TbnColors.success;
-
+        final variants = AppStore.variantsOf(product.id);
+        final total = AppStore.stockOf(product.id);
+        final single = variants.length == 1 && variants.first.label.toLowerCase() == 'one size';
         return Card(
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                _thumbnail(product),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    product.name,
-                    style: t.titleSmall,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => _openProduct(product),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _thumbnail(product),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(product.name, style: t.titleSmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        if (!single && variants.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: [
+                              for (final v in variants)
+                                StatusPill(label: '${v.label} · ${v.stock}', color: colorFor(v.stock)),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                StatusPill(
-                  label: soldOut ? 'Sold out' : '${product.stock} τεμ.',
-                  color: color,
-                ),
-              ],
+                  const SizedBox(width: 8),
+                  StatusPill(
+                    label: total == 0 ? 'Sold out' : '$total τεμ.',
+                    color: colorFor(total),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -165,7 +180,8 @@ class _MerchScreenState extends State<MerchScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${product?.name ?? '—'} × ${order.quantity}',
+                          '${product?.name ?? '—'}'
+                          '${_sizeSuffix(order)} × ${order.quantity}',
                           style: t.titleSmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -213,7 +229,11 @@ class _MerchScreenState extends State<MerchScreen> {
     return Column(
       children: AppStore.products.map((product) {
         final margin = product.salePriceCents - product.unitCostCents;
+        final sizes = AppStore.variantsOf(product.id).map((v) => v.label).join(' · ');
         return Card(
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+          onTap: () => _openProduct(product),
           child: Padding(
             padding: const EdgeInsets.all(12),
             child: Row(
@@ -231,12 +251,14 @@ class _MerchScreenState extends State<MerchScreen> {
                         ' · κέρδος ${formatEuro(margin)}',
                         style: t.bodySmall,
                       ),
+                      if (sizes.isNotEmpty) Text(sizes, style: t.bodySmall),
                     ],
                   ),
                 ),
                 Text(formatEuro(product.salePriceCents), style: t.titleMedium),
               ],
             ),
+          ),
           ),
         );
       }).toList(),
@@ -301,6 +323,11 @@ class _MerchScreenState extends State<MerchScreen> {
     );
   }
 
+  String _sizeSuffix(OrderItem order) {
+    final v = AppStore.variantById(order.variantId);
+    return v == null || v.label.toLowerCase() == 'one size' ? '' : ' (${v.label})';
+  }
+
   Widget _thumbnail(ProductItem product) {
     final provider = imageProviderFromRef(product.imageUrl);
 
@@ -326,6 +353,7 @@ class _MerchScreenState extends State<MerchScreen> {
 
     CustomerItem customer = AppStore.customers.first;
     ProductItem product = AppStore.products.first;
+    ProductVariant? variant = AppStore.variantsOf(product.id).firstOrNull;
     ShippingMethod shippingMethod = ShippingMethod.boxNow;
     OrderContext orderContext = OrderContext.outsideLive;
     final quantity = TextEditingController(text: '1');
@@ -396,10 +424,23 @@ class _MerchScreenState extends State<MerchScreen> {
                       if (value != null) {
                         modalSetState(() {
                           product = value;
+                          variant = AppStore.variantsOf(value.id).firstOrNull;
                         });
                       }
                     },
                   ),
+                  if (AppStore.variantsOf(product.id).length > 1) ...[
+                    const SizedBox(height: 10),
+                    DropdownButtonFormField<ProductVariant>(
+                      key: ValueKey(product.id),
+                      initialValue: variant,
+                      decoration: const InputDecoration(labelText: 'Μέγεθος'),
+                      items: AppStore.variantsOf(product.id)
+                          .map((v) => DropdownMenuItem(value: v, child: Text('${v.label} (stock ${v.stock})')))
+                          .toList(),
+                      onChanged: (v) => modalSetState(() => variant = v),
+                    ),
+                  ],
                   const SizedBox(height: 10),
                   TextField(
                     controller: quantity,
@@ -488,6 +529,7 @@ class _MerchScreenState extends State<MerchScreen> {
                         id: newId(),
                         customerId: customer.id,
                         productId: product.id,
+                        variantId: variant?.id,
                         quantity: qty,
                         shippingCostCents: shipping,
                         shippingMethod: shippingMethod,
@@ -515,152 +557,10 @@ class _MerchScreenState extends State<MerchScreen> {
     );
   }
 
-  void _addProduct() {
-    final name = TextEditingController();
-    final unitCost = TextEditingController();
-    final salePrice = TextEditingController();
-    final initialStock = TextEditingController(text: '0');
-    String? imagePath;
-    List<int>? imageBytes;
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, modalSetState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-              ),
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  const Text(
-                    'Νέο προϊόν',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: -0.3,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  Center(
-                    child: GestureDetector(
-                      onTap: () async {
-                        final image = await _imagePicker.pickImage(
-                          source: ImageSource.gallery,
-                          maxWidth: 480,
-                          maxHeight: 480,
-                          imageQuality: 75,
-                        );
-
-                        if (image != null) {
-                          final bytes = await image.readAsBytes();
-                          modalSetState(() {
-                            imageBytes = bytes;
-                            imagePath = 'data:image/jpeg;base64,'
-                                '${base64Encode(bytes)}';
-                          });
-                        }
-                      },
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: imageProviderFromRef(imagePath) == null
-                            ? const Icon(
-                                Icons.add_a_photo_outlined,
-                                size: 34,
-                              )
-                            : ClipRRect(
-                                borderRadius: BorderRadius.circular(16),
-                                child: Image(
-                                  image: imageProviderFromRef(imagePath)!,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: name,
-                    decoration: const InputDecoration(
-                      labelText: 'Όνομα προϊόντος',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: unitCost,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Κόστος / τεμάχιο',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: salePrice,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    decoration: const InputDecoration(
-                      labelText: 'Τιμή πώλησης',
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  TextField(
-                    controller: initialStock,
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'Αρχικό stock',
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  FilledButton(
-                    onPressed: () {
-                      final cost = parseCents(unitCost.text);
-                      final price = parseCents(salePrice.text);
-                      final stock = int.tryParse(initialStock.text);
-
-                      if (name.text.trim().isEmpty || cost == null || price == null || stock == null || stock < 0) {
-                        return;
-                      }
-
-                      final product = ProductItem(
-                        id: newId(),
-                        name: name.text.trim(),
-                        stock: stock,
-                        unitCostCents: cost,
-                        salePriceCents: price,
-                      );
-                      final bytes = imageBytes;
-                      AppStore.create(product).then((ok) {
-                        if (ok && bytes != null) {
-                          AppStore.uploadProductImage(product, bytes, 'product.jpg');
-                        }
-                      });
-
-                      Navigator.pop(context);
-                    },
-                    child: const Text(
-                      'Δημιουργία προϊόντος',
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
+  Future<void> _openProduct(ProductItem? product) async {
+    await Navigator.of(context).push(
+      TbnPageRoute<void>(builder: (_) => ProductEditScreen(product: product)),
     );
+    if (mounted) setState(() {});
   }
 }

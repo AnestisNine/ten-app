@@ -77,11 +77,20 @@ export const Live = z.object({
 export const Product = z.object({
   id,
   name: text().min(1),
-  stock: z.number().int().min(0),
   unitCostCents: nonNegCents,
   salePriceCents: nonNegCents,
   /** Server path of the uploaded image, e.g. /api/v1/files/<id>; null when none. */
   imageUrl: z.string().max(500).nullable(),
+});
+
+/** A size / variant of a product with its own stock, e.g. "M" or "One size". */
+export const ProductVariant = z.object({
+  id,
+  productId: id,
+  label: text(30).min(1),
+  stock: z.number().int().min(0),
+  /** Display order (S, M, L…). */
+  sortOrder: z.number().int().min(0),
 });
 
 export const Customer = z.object({
@@ -102,6 +111,8 @@ export const Order = z.object({
   number: z.number().int(),
   customerId: id,
   productId: id,
+  /** Size ordered; null for products without sizes. */
+  variantId: id.nullable(),
   quantity: z.number().int().min(1),
   shippingCostCents: nonNegCents,
   shippingMethod: ShippingMethod,
@@ -238,6 +249,8 @@ export const PublicProduct = z.object({
   priceCents: cents,
   inStock: z.boolean(),
   imageUrl: z.string().nullable(),
+  /** Sizes in display order; omitted sizes do not exist. A single "One size" is not listed. */
+  sizes: z.array(z.object({ label: z.string(), inStock: z.boolean() })),
 });
 
 export const InquiryType = z.enum(['booking', 'press', 'general']);
@@ -273,6 +286,7 @@ export const entities = {
   tours: { schema: Tour, create: createOf(Tour) },
   lives: { schema: Live, create: createOf(Live, ['posterUrl']) },
   products: { schema: Product, create: createOf(Product, ['imageUrl']) },
+  productVariants: { schema: ProductVariant, create: createOf(ProductVariant) },
   customers: { schema: Customer, create: createOf(Customer) },
   orders: { schema: Order, create: createOf(Order, ['number', 'createdAt']) },
   calendarEvents: { schema: CalendarEvent, create: createOf(CalendarEvent, ['ownerId']) },
@@ -287,6 +301,7 @@ export type EntityName = keyof typeof entities;
 export type Tour = z.infer<typeof Tour>;
 export type Live = z.infer<typeof Live>;
 export type Product = z.infer<typeof Product>;
+export type ProductVariant = z.infer<typeof ProductVariant>;
 export type Customer = z.infer<typeof Customer>;
 export type Order = z.infer<typeof Order>;
 export type CalendarEvent = z.infer<typeof CalendarEvent>;

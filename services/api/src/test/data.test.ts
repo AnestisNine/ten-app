@@ -67,7 +67,7 @@ describe('CRUD with permissions and audit', () => {
     expect(orders.map((o: { number: number }) => o.number)).toEqual([1001, 1002, 1003]);
     const o = orders[0];
     const created = await manager.post('/api/v1/orders', {
-      customerId: o.customerId, productId: o.productId, quantity: 1, shippingCostCents: 0, shippingMethod: 'acs',
+      customerId: o.customerId, productId: o.productId, variantId: null, quantity: 1, shippingCostCents: 0, shippingMethod: 'acs',
       status: 'waitingContact', source: 'organic', context: 'afterLive', trackingNumber: '', notes: '',
     });
     expect(created.status).toBe(201);

@@ -396,6 +396,22 @@ h3 {
   justify-content: space-between;
   gap: 8px;
 }
+.sizes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.sizes span {
+  font: 700 12px/1 var(--display);
+  letter-spacing: 0.08em;
+  border: 1px solid var(--line);
+  padding: 5px 7px;
+}
+.sizes span.out {
+  color: var(--muted);
+  text-decoration: line-through;
+  opacity: 0.6;
+}
 .badge {
   font: 700 12px/1 var(--display);
   letter-spacing: 0.12em;

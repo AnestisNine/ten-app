@@ -46,9 +46,15 @@ void main() {
       'products': ProductItem(
         id: '44444444-4444-4444-8444-444444444444',
         name: 'Poster',
-        stock: 30,
         unitCostCents: 150,
         salePriceCents: 1000,
+      ).toJson(),
+      'product-variants': ProductVariant(
+        id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+        productId: '44444444-4444-4444-8444-444444444444',
+        label: 'M',
+        stock: 12,
+        sortOrder: 1,
       ).toJson(),
       'customers': CustomerItem(
         id: '55555555-5555-4555-8555-555555555555',
@@ -61,6 +67,7 @@ void main() {
         id: '66666666-6666-4666-8666-666666666666',
         customerId: '55555555-5555-4555-8555-555555555555',
         productId: '44444444-4444-4444-8444-444444444444',
+        variantId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
         quantity: 2,
         shippingCostCents: 350,
         shippingMethod: ShippingMethod.boxNow,

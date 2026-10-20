@@ -22,6 +22,7 @@ const labels = { soldOut: s.soldOut, buy: s.buyOnBandcamp, none: s.noProducts, e
     priceCents: number;
     inStock: boolean;
     imageUrl: string | null;
+    sizes: { label: string; inStock: boolean }[];
   }
 
   for (const el of document.querySelectorAll<HTMLElement>('.product-grid')) {
@@ -52,6 +53,7 @@ const labels = { soldOut: s.soldOut, buy: s.buyOnBandcamp, none: s.noProducts, e
               <div class="thumb">${img}</div>
               <h3>${escapeHtml(p.name)}</h3>
               <div class="meta"><span>${formatPrice(p.priceCents, lang)}</span></div>
+              ${p.sizes.length ? `<div class="sizes">${p.sizes.map((z) => `<span class="${z.inStock ? '' : 'out'}">${escapeHtml(z.label)}</span>`).join('')}</div>` : ''}
               ${action}
             </article>`;
           })

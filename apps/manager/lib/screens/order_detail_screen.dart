@@ -100,6 +100,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               _row('Source', orderSourceLabel(order.source)),
               _row('Τύπος', orderContextLabel(order.context)),
               _row('Προϊόν', product?.name ?? '—'),
+              if (AppStore.variantById(order.variantId) case final v? when v.label.toLowerCase() != 'one size')
+                _row('Μέγεθος', v.label),
               _row('Ποσότητα', '${order.quantity}'),
               _row('Τιμή / τεμ.', product == null ? '—' : formatCents(product.salePriceCents)),
               _row('Υποσύνολο', formatCents(subtotal)),

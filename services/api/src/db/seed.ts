@@ -5,7 +5,7 @@
 import { hashPassword } from 'better-auth/crypto';
 import type { Role } from '@tbn/shared';
 import { randomUUID } from 'node:crypto';
-import { sql as rawSql } from 'drizzle-orm';
+import { eq, sql as rawSql } from 'drizzle-orm';
 import { createDb, type Db } from './client.js';
 import * as s from './schema.js';
 import { encryptJson } from '../crypto.js';
@@ -28,7 +28,7 @@ export async function seed(db: Db, encryptionKey: string) {
   await db.transaction(async (tx) => {
     // Order matters because of foreign keys. audit_log is append-only and is left alone.
     for (const t of [
-      s.orders, s.customers, s.products, s.files, s.lives, s.tours, s.calendarEvents, s.calendarFeeds,
+      s.orders, s.customers, s.productVariants, s.products, s.files, s.lives, s.tours, s.calendarEvents, s.calendarFeeds,
       s.memberSensitive, s.members, s.streamingIncomes, s.generalExpenses, s.rentPayments, s.rentPeople,
       s.notifications, s.twoFactor, s.session, s.account, s.verification, s.user,
     ]) {
@@ -87,11 +87,23 @@ export async function seed(db: Db, encryptionKey: string) {
     const [tshirt, hoodie] = await tx
       .insert(s.products)
       .values([
-        { name: 'TBN T-Shirt', stock: 8, unitCostCents: 800, salePriceCents: 2000 },
-        { name: 'TBN Hoodie', stock: 0, unitCostCents: 1800, salePriceCents: 4000 },
-        { name: 'TBN Vinyl LP', stock: 25, unitCostCents: 900, salePriceCents: 2500 },
+        { name: 'TBN T-Shirt', unitCostCents: 800, salePriceCents: 2000 },
+        { name: 'TBN Hoodie', unitCostCents: 1800, salePriceCents: 4000 },
+        { name: 'TBN Vinyl LP', unitCostCents: 900, salePriceCents: 2500 },
       ])
       .returning();
+    const sizes = (productId: string, stock: Record<string, number>) =>
+      Object.entries(stock).map(([label, n], i) => ({ productId, label, stock: n, sortOrder: i }));
+    const [vinyl] = await tx.select().from(s.products).where(eq(s.products.name, 'TBN Vinyl LP'));
+    const variants = await tx
+      .insert(s.productVariants)
+      .values([
+        ...sizes(tshirt!.id, { S: 2, M: 3, L: 3, XL: 0 }),
+        ...sizes(hoodie!.id, { M: 0, L: 0 }),
+        ...sizes(vinyl!.id, { 'One size': 25 }),
+      ])
+      .returning();
+    const variant = (productId: string, label: string) => variants.find((v) => v.productId === productId && v.label === label)!.id;
     const [customer] = await tx
       .insert(s.customers)
       .values({
@@ -101,15 +113,15 @@ export async function seed(db: Db, encryptionKey: string) {
       .returning();
     await tx.insert(s.orders).values([
       {
-        customerId: customer!.id, productId: tshirt!.id, quantity: 2, shippingCostCents: 600, shippingMethod: 'boxNow',
+        customerId: customer!.id, productId: tshirt!.id, variantId: variant(tshirt!.id, 'M'), quantity: 2, shippingCostCents: 600, shippingMethod: 'boxNow',
         status: 'waitingContact', source: 'organic', context: 'outsideLive',
       },
       {
-        customerId: customer!.id, productId: tshirt!.id, quantity: 1, shippingCostCents: 500, shippingMethod: 'elta',
+        customerId: customer!.id, productId: tshirt!.id, variantId: variant(tshirt!.id, 'L'), quantity: 1, shippingCostCents: 500, shippingMethod: 'elta',
         status: 'completed', source: 'bandcamp', context: 'outsideLive',
       },
       {
-        customerId: customer!.id, productId: hoodie!.id, quantity: 1, shippingCostCents: 0, shippingMethod: 'acs',
+        customerId: customer!.id, productId: hoodie!.id, variantId: variant(hoodie!.id, 'L'), quantity: 1, shippingCostCents: 0, shippingMethod: 'acs',
         status: 'waitingRestock', source: 'organic', context: 'afterLive',
       },
     ]);

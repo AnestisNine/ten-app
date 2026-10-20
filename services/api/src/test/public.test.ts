@@ -44,8 +44,15 @@ describe('public website API', () => {
   it('lists products without cost or stock numbers', async () => {
     const res = await site.get('/api/public/products');
     const tee = res.json.items.find((p: { name: string }) => p.name === 'TBN T-Shirt');
-    expect(tee).toEqual({ id: tee.id, name: 'TBN T-Shirt', priceCents: 2000, inStock: true, imageUrl: null });
+    expect(tee).toEqual({
+      id: tee.id, name: 'TBN T-Shirt', priceCents: 2000, inStock: true, imageUrl: null,
+      sizes: [
+        { label: 'S', inStock: true }, { label: 'M', inStock: true }, { label: 'L', inStock: true }, { label: 'XL', inStock: false },
+      ],
+    });
     expect(res.json.items.find((p: { name: string }) => p.name === 'TBN Hoodie').inStock).toBe(false);
+    // A single "One size" is not shown as a size.
+    expect(res.json.items.find((p: { name: string }) => p.name === 'TBN Vinyl LP').sizes).toEqual([]);
   });
 
   it('stores contact messages and notifies admins/managers', async () => {

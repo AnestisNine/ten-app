@@ -13,7 +13,7 @@ import type { Context } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import { splitList } from '../config.js';
 import type { App, AppEnv } from '../context.js';
-import { files, inquiries, lives, newsletterSubscribers, notifications, products, user } from '../db/schema.js';
+import { files, inquiries, lives, newsletterSubscribers, notifications, products, productVariants, user } from '../db/schema.js';
 import { ApiError } from '../errors.js';
 import { clientIp } from '../middleware.js';
 
@@ -115,7 +115,11 @@ export function registerPublicRoutes(app: App) {
       responses: { 200: { description: 'Merch catalogue', content: { 'application/json': { schema: z.object({ items: z.array(ProductOut) }) } } } },
     }),
     async (c) => {
-      const rows = await c.var.deps.db.select().from(products).orderBy(asc(products.name));
+      const { db } = c.var.deps;
+      const rows = await db.select().from(products).orderBy(asc(products.name));
+      const variants = await db.select().from(productVariants).orderBy(asc(productVariants.sortOrder));
+      const byProduct = new Map<string, typeof variants>();
+      for (const v of variants) byProduct.set(v.productId, [...(byProduct.get(v.productId) ?? []), v]);
       c.header('Cache-Control', 'public, max-age=300');
       return c.json(
         {
@@ -124,8 +128,14 @@ export function registerPublicRoutes(app: App) {
               id: p.id,
               name: p.name,
               priceCents: p.salePriceCents,
-              inStock: p.stock > 0,
+              inStock: (byProduct.get(p.id) ?? []).some((v) => v.stock > 0),
               imageUrl: p.imageFileId ? `/api/public/products/${p.id}/image` : null,
+              sizes: (() => {
+                const vs = byProduct.get(p.id) ?? [];
+                return vs.length === 1 && vs[0]!.label.toLowerCase() === 'one size'
+                  ? []
+                  : vs.map((v) => ({ label: v.label, inStock: v.stock > 0 }));
+              })(),
             }),
           ),
         },

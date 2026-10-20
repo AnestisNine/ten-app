@@ -15,6 +15,7 @@ const CLASSES: [z.ZodObject, string, string][] = [
   [shared.Tour, 'TourItem', 'tours'],
   [shared.Live, 'LiveItem', 'lives'],
   [shared.Product, 'ProductItem', 'products'],
+  [shared.ProductVariant, 'ProductVariant', 'product-variants'],
   [shared.Customer, 'CustomerItem', 'customers'],
   [shared.Order, 'OrderItem', 'orders'],
   [shared.CalendarEvent, 'CalendarItem', 'calendar-events'],

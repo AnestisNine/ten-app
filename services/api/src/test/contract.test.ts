@@ -13,7 +13,7 @@ const payloads = JSON.parse(
 ) as Record<string, Record<string, unknown>>;
 
 const ORDER = [
-  'tours', 'lives', 'calendar-events', 'products', 'customers', 'orders', 'members',
+  'tours', 'lives', 'calendar-events', 'products', 'product-variants', 'customers', 'orders', 'members',
   'streaming-incomes', 'general-expenses', 'rent-people', 'rent-payments',
 ];
 
