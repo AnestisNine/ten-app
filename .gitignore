@@ -16,3 +16,5 @@ apps/manager/pubspec.lock.bak
 /data/
 services/api/data/
 /backups/
+apps/web/dist/
+apps/web/.astro/

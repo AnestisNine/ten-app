@@ -1,0 +1,67 @@
+---
+import { t, type Lang } from '../i18n';
+import { site } from '../site.config';
+interface Props {
+  lang: Lang;
+  limit?: number;
+}
+const { lang, limit } = Astro.props;
+const s = t[lang];
+const labels = { soldOut: s.soldOut, buy: s.buyOnBandcamp, none: s.noProducts, error: s.loadError };
+---
+<div class="product-grid" data-lang={lang} data-limit={limit ?? ''} data-labels={JSON.stringify(labels)} data-buy={site.bandcampUrl}>
+  <p class="status" aria-live="polite">{s.loading}</p>
+  <div class="grid" hidden></div>
+</div>
+<script>
+  import { apiUrl, escapeHtml, formatPrice, getJson } from '../lib/api';
+
+  interface Product {
+    id: string;
+    name: string;
+    priceCents: number;
+    inStock: boolean;
+    imageUrl: string | null;
+  }
+
+  for (const el of document.querySelectorAll<HTMLElement>('.product-grid')) {
+    const lang = el.dataset.lang ?? 'el';
+    const limit = Number(el.dataset.limit) || Infinity;
+    const l = JSON.parse(el.dataset.labels ?? '{}');
+    const buy = el.dataset.buy ?? '';
+    const status = el.querySelector('.status')!;
+    const grid = el.querySelector<HTMLElement>('.grid')!;
+    getJson<{ items: Product[] }>('/api/public/products')
+      .then(({ items }) => {
+        if (items.length === 0) {
+          status.textContent = l.none;
+          return;
+        }
+        grid.innerHTML = items
+          .slice(0, limit)
+          .map((p) => {
+            const img = p.imageUrl
+              ? `<img src="${apiUrl()}${escapeHtml(p.imageUrl)}" alt="${escapeHtml(p.name)}" loading="lazy" width="400" height="400">`
+              : `<img class="placeholder" src="/images/logo.png" alt="" width="200" height="100">`;
+            const action = !p.inStock
+              ? `<span class="badge">${l.soldOut}</span>`
+              : buy
+                ? `<a class="btn" href="${escapeHtml(buy)}" target="_blank" rel="noopener">${l.buy}</a>`
+                : '';
+            return `<article class="card">
+              <div class="thumb">${img}</div>
+              <h3>${escapeHtml(p.name)}</h3>
+              <div class="meta"><span>${formatPrice(p.priceCents, lang)}</span></div>
+              ${action}
+            </article>`;
+          })
+          .join('');
+        status.remove();
+        grid.hidden = false;
+      })
+      .catch(() => {
+        // Visitors see the same friendly message as "nothing announced" if the API is unreachable.
+        status.textContent = l.none;
+      });
+  }
+</script>

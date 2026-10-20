@@ -1,0 +1,65 @@
+---
+import Base from '../../layouts/Base.astro';
+import { href, langOf, paths, t } from '../../i18n';
+import { site } from '../../site.config';
+
+export const getStaticPaths = paths;
+const lang = langOf(Astro.params.lang);
+const s = t[lang];
+const f = s.form;
+const params = new URL(Astro.url).searchParams;
+---
+<Base lang={lang} path="/contact" title={s.contact}>
+  <div class="wrap page-head">
+    <h1>{s.contact}</h1>
+    <p class="lead">{s.contactIntro}</p>
+  </div>
+  <div class="wrap" style="padding-bottom:100px">
+    <form class="form contact-form" data-lang={lang} data-sent={f.sent} data-sending={f.sending} data-error={`${f.error} ${site.email}`} novalidate>
+      <label>{f.type}
+        <select name="type">
+          <option value="booking" selected={params.get('type') !== 'press'}>{f.types.booking}</option>
+          <option value="press">{f.types.press}</option>
+          <option value="general">{f.types.general}</option>
+        </select>
+      </label>
+      <div class="row">
+        <label>{f.name}<input name="name" required maxlength="100" autocomplete="name" /></label>
+        <label>{f.email}<input name="email" type="email" required maxlength="200" autocomplete="email" /></label>
+      </div>
+      <div class="row">
+        <label>{f.phone}<input name="phone" type="tel" maxlength="50" autocomplete="tel" /></label>
+        <label>{f.subject}<input name="subject" maxlength="200" /></label>
+      </div>
+      <label>{f.message}<textarea name="message" required maxlength="5000"></textarea></label>
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <p class="lead" style="margin:0;font-size:14px">{f.privacy} <a href={href(lang, '/privacy')}>{s.privacyPolicy}</a></p>
+      <div><button class="btn primary" type="submit">{f.send}</button></div>
+      <p class="form-status" role="status"></p>
+    </form>
+    <p class="lead" style="margin-top:40px">Email: <a href={`mailto:${site.email}`}>{site.email}</a></p>
+  </div>
+</Base>
+<script>
+  import { postJson } from '../../lib/api';
+  for (const form of document.querySelectorAll<HTMLFormElement>('.contact-form')) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      const status = form.querySelector('.form-status')!;
+      const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
+      const data = Object.fromEntries(new FormData(form)) as Record<string, string>;
+      button.disabled = true;
+      status.classList.remove('error');
+      status.textContent = form.dataset.sending!;
+      const res = await postJson('/api/public/contact', { ...data, locale: form.dataset.lang }).catch(() => null);
+      button.disabled = false;
+      status.classList.toggle('error', !res?.ok);
+      status.textContent = res?.ok ? form.dataset.sent! : form.dataset.error!;
+      if (res?.ok) form.reset();
+    });
+  }
+</script>

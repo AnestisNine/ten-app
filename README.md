@@ -8,10 +8,10 @@ Phase 3, the band's public website. One source of truth: a PostgreSQL database b
 | Internal app (web only) | `apps/manager` | Flutter 3.47 / Dart, built for the web |
 | API | `services/api` | Node 22, Hono, Drizzle ORM, Better Auth, zod |
 | Shared contract | `packages/shared` | TypeScript: zod schemas, roles/permissions, money helpers |
-| Public website | `apps/web` | Phase 3 (Astro) |
+| Public website | `apps/web` | Astro, static, Cloudflare Pages |
 | Ops | `Dockerfile`, `docker-compose.yml`, `.github/workflows` | Docker, Cloudflare Tunnel, GitHub Actions → GHCR |
 
-Docs: [`docs/PREVIEW.md`](docs/PREVIEW.md) (try it locally) · [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/OPERATIONS.md`](docs/OPERATIONS.md) (install on the server,
+Docs: [`docs/PREVIEW.md`](docs/PREVIEW.md) (try it locally) · [`docs/WEBSITE.md`](docs/WEBSITE.md) (public site) · [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) · [`docs/OPERATIONS.md`](docs/OPERATIONS.md) (install on the server,
 tunnel, backups, security) · [`docs/PHASE0_AUDIT.md`](docs/PHASE0_AUDIT.md) · [`docs/PHASE1_REPORT.md`](docs/PHASE1_REPORT.md)
 
 ## Development setup

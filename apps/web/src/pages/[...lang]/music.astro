@@ -1,0 +1,43 @@
+---
+import Base from '../../layouts/Base.astro';
+import { langOf, paths, t } from '../../i18n';
+import { site } from '../../site.config';
+
+export const getStaticPaths = paths;
+const lang = langOf(Astro.params.lang);
+const s = t[lang];
+const streaming = Object.entries({
+  Spotify: site.social.spotify,
+  Bandcamp: site.social.bandcamp,
+  'Apple Music': site.social.appleMusic,
+  YouTube: site.social.youtube,
+}).filter(([, url]) => url);
+---
+<Base lang={lang} path="/music" title={s.music}>
+  <div class="wrap page-head">
+    <h1>{s.music}</h1>
+    {streaming.length > 0 && (
+      <div class="hero-actions" style="justify-content:flex-start;margin-top:24px">
+        {streaming.map(([name, url]) => <a class="btn" href={url} target="_blank" rel="noopener">{name}</a>)}
+      </div>
+    )}
+  </div>
+  <section class="wrap" style="padding-bottom:100px">
+    {site.releases.length === 0 ? (
+      <p class="lead">{s.noReleases}</p>
+    ) : (
+      <div class="grid">
+        {site.releases.map((r) => (
+          <article class="card">
+            <div class="thumb">
+              {r.cover ? <img src={`/images/${r.cover}`} alt={r.title} loading="lazy" /> : <img class="placeholder" src="/images/logo.png" alt="" />}
+            </div>
+            <h3>{r.title}</h3>
+            <div class="meta"><span>{r.type}</span><span>{r.year}</span></div>
+            {Object.entries(r.links).map(([name, url]) => <a class="link-arrow" href={url} target="_blank" rel="noopener">{s.listen}: {name}</a>)}
+          </article>
+        ))}
+      </div>
+    )}
+  </section>
+</Base>

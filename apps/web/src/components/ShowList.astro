@@ -1,0 +1,68 @@
+---
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+  /** Show at most this many (home page). */
+  limit?: number;
+}
+const { lang, limit } = Astro.props;
+const s = t[lang];
+const labels = { tickets: s.tickets, soon: s.soon, none: s.noShows, error: s.loadError, support: s.support };
+---
+<div class="show-list" data-lang={lang} data-limit={limit ?? ''} data-labels={JSON.stringify(labels)}>
+  <p class="status" aria-live="polite">{s.loading}</p>
+  <ul class="shows" hidden></ul>
+  <noscript><p class="status">{s.noShows}</p></noscript>
+</div>
+<script>
+  import { escapeHtml, getJson } from '../lib/api';
+
+  interface Show {
+    id: string;
+    date: string;
+    venue: string;
+    city: string;
+    country: string;
+    support: string;
+    ticketUrl: string | null;
+  }
+
+  for (const el of document.querySelectorAll<HTMLElement>('.show-list')) {
+    const lang = el.dataset.lang ?? 'el';
+    const limit = Number(el.dataset.limit) || Infinity;
+    const l = JSON.parse(el.dataset.labels ?? '{}');
+    const status = el.querySelector('.status')!;
+    const list = el.querySelector<HTMLUListElement>('.shows')!;
+    const locale = lang === 'en' ? 'en-GB' : 'el-GR';
+    getJson<{ items: Show[] }>('/api/public/shows')
+      .then(({ items }) => {
+        if (items.length === 0) {
+          status.textContent = l.none;
+          return;
+        }
+        list.innerHTML = items
+          .slice(0, limit)
+          .map((show) => {
+            const d = new Date(`${show.date}T12:00:00`);
+            const day = d.toLocaleDateString(locale, { day: '2-digit', month: 'short' });
+            const extra = `${d.toLocaleDateString(locale, { weekday: 'short' })} · ${d.getFullYear()}`;
+            const ticket = show.ticketUrl
+              ? `<a class="btn primary" href="${escapeHtml(show.ticketUrl)}" target="_blank" rel="noopener">${l.tickets}</a>`
+              : `<span class="btn" aria-disabled="true">${l.soon}</span>`;
+            const support = show.support ? ` · ${l.support} ${escapeHtml(show.support)}` : '';
+            return `<li class="show">
+              <div class="show-date"><time datetime="${show.date}">${escapeHtml(day)}</time><small>${escapeHtml(extra)}</small></div>
+              <div class="show-place"><strong>${escapeHtml(show.city)}</strong><span>${escapeHtml(show.venue)}, ${escapeHtml(show.country)}${support}</span></div>
+              ${ticket}
+            </li>`;
+          })
+          .join('');
+        status.remove();
+        list.hidden = false;
+      })
+      .catch(() => {
+        // Visitors see the same friendly message as "nothing announced" if the API is unreachable.
+        status.textContent = l.none;
+      });
+  }
+</script>

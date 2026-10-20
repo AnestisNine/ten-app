@@ -39,6 +39,8 @@ jobs:
       - run: pnpm --filter @tbn/shared build
       - run: pnpm -r typecheck
       - run: pnpm -r test
+      - name: Website builds
+        run: pnpm --filter @tbn/web build
       - name: Dart models are up to date
         run: pnpm gen:dart && git diff --exit-code apps/manager/lib/api/
 

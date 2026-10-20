@@ -16,6 +16,7 @@ cat > .env <<ENV
 NODE_ENV=production
 APP_URL=https://app.thebonnienettles.com
 TBN_IMAGE=ghcr.io/anestisnine/tbn-manager:latest
+PUBLIC_SITE_ORIGINS=https://thebonnienettles.com,https://www.thebonnienettles.com
 
 POSTGRES_PASSWORD=$(rand 24 | tr -dc 'A-Za-z0-9')
 AUTH_SECRET=$(rand 48)

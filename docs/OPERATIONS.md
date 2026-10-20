@@ -64,6 +64,8 @@ cp .env.example .env
    Μόνο αυτοί βλέπουν καν τη σελίδα σύνδεσης (Access στέλνει κωδικό στο email τους).
 2. Δεύτερη εφαρμογή για το `app.<domain>/ical` με policy **Bypass** (Everyone): τα ημερολόγια
    (Google/Apple) δεν μπορούν να περάσουν από Access. Τα feeds προστατεύονται από το μυστικό token τους.
+3. Τρίτη εφαρμογή για το `app.<domain>/api/public` με policy **Bypass** (Everyone): από εκεί το δημόσιο site
+   διαβάζει συναυλίες/merch και στέλνει τις φόρμες. Περιέχει μόνο δημόσια δεδομένα και έχει rate limit.
 
 ## 6. Εκκίνηση
 

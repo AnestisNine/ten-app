@@ -1,0 +1,51 @@
+---
+import { t, type Lang } from '../i18n';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
+const s = t[lang];
+---
+<section class="section" id="newsletter" aria-labelledby="nl-title">
+  <div class="wrap newsletter">
+    <div>
+      <h2 id="nl-title">{s.newsletter}</h2>
+      <p class="lead">{s.newsletterIntro}</p>
+    </div>
+    <form class="form newsletter-form" data-lang={lang} data-done={s.subscribed} data-error={s.loadError} novalidate>
+      <div class="inline">
+        <input type="email" name="email" required autocomplete="email" placeholder="email@example.com" aria-label="Email" />
+        <button class="btn primary" type="submit">{s.subscribe}</button>
+      </div>
+      <label class="check">
+        <input type="checkbox" name="consent" required />
+        <span>{s.newsletterConsent}</span>
+      </label>
+      <input class="hp" type="text" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" />
+      <p class="form-status" role="status"></p>
+    </form>
+  </div>
+</section>
+<script>
+  import { postJson } from '../lib/api';
+  for (const form of document.querySelectorAll<HTMLFormElement>('.newsletter-form')) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const status = form.querySelector('.form-status')!;
+      const data = new FormData(form);
+      if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      const res = await postJson('/api/public/newsletter', {
+        email: data.get('email'),
+        consent: data.get('consent') === 'on',
+        locale: form.dataset.lang,
+        website: data.get('website') ?? '',
+      }).catch(() => null);
+      status.classList.toggle('error', !res?.ok);
+      status.textContent = res?.ok ? form.dataset.done! : form.dataset.error!;
+      if (res?.ok) form.reset();
+    });
+  }
+</script>
