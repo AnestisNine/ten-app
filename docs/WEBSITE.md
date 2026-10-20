@@ -7,7 +7,9 @@
 
 ## Ανάρτηση (μία φορά, ~5 λεπτά)
 
-1. Cloudflare dashboard → **Workers & Pages** → **Create** → καρτέλα **Pages** → **Connect to Git**.
+1. Cloudflare dashboard → **Workers & Pages** → **Create application**. Στη σελίδα που ανοίγει, διάλεξε **Pages**
+   (καρτέλα πάνω, ή σύνδεσμος στο κάτω μέρος «Looking to deploy Pages? Get started») → **Connect to Git**.
+   *Μην* προχωρήσεις με «Worker» / «Import a repository» της κεντρικής οθόνης — αυτό φτιάχνει Worker, όχι Pages.
 2. Σύνδεσε το GitHub και διάλεξε το repository **ten-app**.
 3. Ρυθμίσεις build:
    | Πεδίο | Τιμή |
