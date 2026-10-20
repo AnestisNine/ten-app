@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+# Flutter
+apps/manager/.dart_tool/
+apps/manager/build/
+apps/manager/.flutter-plugins
+apps/manager/.flutter-plugins-dependencies
+apps/manager/pubspec.lock.bak
+# Runtime data
+data/
