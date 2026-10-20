@@ -1,6 +1,7 @@
 # Δημόσιο site — thebonnienettles.com
 
-Στατικό site (Astro) σε Cloudflare Worker, ελληνικά στη ρίζα (`/`) και αγγλικά στο `/en`.
+Στατικό site (Astro) σε Cloudflare Worker, **μόνο στα αγγλικά**, **σε μία σελίδα**: το μενού (Home, Tour, Music,
+Merch, About, Contact) κατεβαίνει στην αντίστοιχη ενότητα. Ξεχωριστή σελίδα έχει μόνο η Privacy policy.
 Οι συναυλίες (μόνο τα **επιβεβαιωμένα** lives) και το merch έρχονται αυτόματα από το app μέσω
 `https://app.thebonnienettles.com/api/public/...`. Μέχρι να στηθεί ο server, το site δείχνει «δεν υπάρχουν
 ανακοινωμένες συναυλίες» / «νέο merch σύντομα».
@@ -26,10 +27,10 @@
 
 ## Αλλαγές περιεχομένου
 
-- Κείμενα (ελληνικά/αγγλικά): `apps/web/src/i18n.ts`
+- Κείμενα: `apps/web/src/i18n.ts`
 - Links (Instagram, Spotify, Bandcamp…), email, δισκογραφία: `apps/web/src/site.config.ts`
 - Φωτογραφία κεντρικής εικόνας: βάλε `apps/web/public/images/hero.jpg` και ενεργοποίησε τη γραμμή στο
-  `apps/web/src/pages/[...lang]/index.astro`
+  `apps/web/src/pages/index.astro`
 - Συναυλίες: από το app (status «Επιβεβαιωμένο» + «Link εισιτηρίων» στη σελίδα του live)
 - Merch: από το app (Merch → Products). Το κουμπί «Αγορά στο Bandcamp» εμφανίζεται όταν συμπληρωθεί το `bandcampUrl`.
 

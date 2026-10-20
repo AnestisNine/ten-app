@@ -1,64 +1,8 @@
-export type Lang = 'el' | 'en';
-export const LANGS: Lang[] = ['el', 'en'];
-
-/** Greek lives at the root, English under /en. */
-export const paths = () => [{ params: { lang: undefined } }, { params: { lang: 'en' } }];
-export const langOf = (param: string | undefined): Lang => (param === 'en' ? 'en' : 'el');
-export const href = (lang: Lang, path: string) => (lang === 'en' ? `/en${path === '/' ? '' : path}` : path);
+/** The site is English only; texts live here so they are easy to edit in one place. */
+export type Lang = 'en';
+export const href = (_lang: Lang, path: string) => path;
 
 export const t = {
-  el: {
-    nav: { tour: 'Συναυλίες', music: 'Μουσική', shop: 'Merch', about: 'Η μπάντα', contact: 'Επικοινωνία' },
-    skip: 'Μετάβαση στο περιεχόμενο',
-    tagline: 'Νέες ημερομηνίες, νέα μουσική, merch.',
-    seeTour: 'Δες τις συναυλίες',
-    shopNow: 'Merch',
-    upcoming: 'Επόμενες συναυλίες',
-    allDates: 'Όλες οι ημερομηνίες',
-    tickets: 'Εισιτήρια',
-    soon: 'Σύντομα',
-    noShows: 'Δεν υπάρχουν ανακοινωμένες συναυλίες αυτή τη στιγμή. Γράψου στο newsletter για να μάθεις πρώτος.',
-    loading: 'Φόρτωση…',
-    loadError: 'Δεν ήταν δυνατή η φόρτωση. Δοκίμασε ξανά σε λίγο.',
-    support: 'Με',
-    music: 'Μουσική',
-    listen: 'Άκου',
-    noReleases: 'Η δισκογραφία ανεβαίνει σύντομα.',
-    merch: 'Merch',
-    soldOut: 'Εξαντλήθηκε',
-    buyOnBandcamp: 'Αγορά στο Bandcamp',
-    merchNote: 'Οι αγορές γίνονται προς το παρόν μέσω Bandcamp.',
-    noProducts: 'Νέο merch έρχεται σύντομα.',
-    about: 'Η μπάντα',
-    aboutText:
-      'Οι The Bonnie Nettles είναι μπάντα από την Αθήνα. (Εδώ θα μπει το βιογραφικό της μπάντας.)',
-    contact: 'Επικοινωνία',
-    contactIntro: 'Για booking, συνεντεύξεις ή οτιδήποτε άλλο, στείλε μας μήνυμα.',
-    form: {
-      type: 'Θέμα',
-      types: { booking: 'Booking / συναυλία', press: 'Τύπος / media', general: 'Γενικό' },
-      name: 'Όνομα',
-      email: 'Email',
-      phone: 'Τηλέφωνο (προαιρετικό)',
-      subject: 'Τίτλος (προαιρετικό)',
-      message: 'Μήνυμα',
-      send: 'Αποστολή',
-      sending: 'Αποστολή…',
-      sent: 'Ευχαριστούμε! Θα σου απαντήσουμε σύντομα.',
-      error: 'Κάτι πήγε στραβά. Δοκίμασε ξανά ή στείλε email στο',
-      privacy: 'Χρησιμοποιούμε τα στοιχεία σου μόνο για να σου απαντήσουμε.',
-    },
-    newsletter: 'Newsletter',
-    newsletterIntro: 'Μάθε πρώτος για νέες συναυλίες, κυκλοφορίες και merch.',
-    newsletterConsent:
-      'Θέλω να λαμβάνω email από τους The Bonnie Nettles για νέα, συναυλίες και merch. Μπορώ να διαγραφώ οποτεδήποτε.',
-    subscribe: 'Εγγραφή',
-    subscribed: 'Έγινε! Ευχαριστούμε.',
-    privacyPolicy: 'Πολιτική απορρήτου',
-    rights: 'Με επιφύλαξη παντός δικαιώματος.',
-    notFound: 'Η σελίδα δεν βρέθηκε.',
-    home: 'Αρχική',
-  },
   en: {
     nav: { tour: 'Tour', music: 'Music', shop: 'Merch', about: 'About', contact: 'Contact' },
     skip: 'Skip to content',

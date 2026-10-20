@@ -25,7 +25,7 @@ const labels = { soldOut: s.soldOut, buy: s.buyOnBandcamp, none: s.noProducts, e
   }
 
   for (const el of document.querySelectorAll<HTMLElement>('.product-grid')) {
-    const lang = el.dataset.lang ?? 'el';
+    const lang = el.dataset.lang ?? 'en';
     const limit = Number(el.dataset.limit) || Infinity;
     const l = JSON.parse(el.dataset.labels ?? '{}');
     const buy = el.dataset.buy ?? '';

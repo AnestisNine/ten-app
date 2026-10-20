@@ -20,5 +20,5 @@ export const escapeHtml = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 
 export function formatPrice(cents: number, lang: string) {
-  return new Intl.NumberFormat(lang === 'en' ? 'en-IE' : 'el-GR', { style: 'currency', currency: 'EUR' }).format(cents / 100);
+  return new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(cents / 100);
 }

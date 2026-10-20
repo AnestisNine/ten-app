@@ -1,24 +1,17 @@
 ---
-import Base from '../../layouts/Base.astro';
-import { href, langOf, paths, t } from '../../i18n';
-import { site } from '../../site.config';
-
-export const getStaticPaths = paths;
-const lang = langOf(Astro.params.lang);
+import { href, t, type Lang } from '../i18n';
+import { site } from '../site.config';
+interface Props {
+  lang: Lang;
+}
+const { lang } = Astro.props;
 const s = t[lang];
 const f = s.form;
-const params = new URL(Astro.url).searchParams;
 ---
-<Base lang={lang} path="/contact" title={s.contact}>
-  <div class="wrap page-head">
-    <h1>{s.contact}</h1>
-    <p class="lead">{s.contactIntro}</p>
-  </div>
-  <div class="wrap" style="padding-bottom:64px">
     <form class="form contact-form" data-lang={lang} data-sent={f.sent} data-sending={f.sending} data-error={`${f.error} ${site.email}`} novalidate>
       <label>{f.type}
         <select name="type">
-          <option value="booking" selected={params.get('type') !== 'press'}>{f.types.booking}</option>
+          <option value="booking" selected>{f.types.booking}</option>
           <option value="press">{f.types.press}</option>
           <option value="general">{f.types.general}</option>
         </select>
@@ -37,11 +30,9 @@ const params = new URL(Astro.url).searchParams;
       <div><button class="btn primary" type="submit">{f.send}</button></div>
       <p class="form-status" role="status"></p>
     </form>
-    <p class="lead" style="margin-top:40px">Email: <a href={`mailto:${site.email}`}>{site.email}</a></p>
-  </div>
-</Base>
+<p class="lead" style="margin-top:28px">Email: <a href={`mailto:${site.email}`}>{site.email}</a></p>
 <script>
-  import { postJson } from '../../lib/api';
+  import { postJson } from '../lib/api';
   for (const form of document.querySelectorAll<HTMLFormElement>('.contact-form')) {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();

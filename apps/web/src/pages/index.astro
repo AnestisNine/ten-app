@@ -1,0 +1,69 @@
+---
+import Base from '../layouts/Base.astro';
+import ContactForm from '../components/ContactForm.astro';
+import Music from '../components/Music.astro';
+import Newsletter from '../components/Newsletter.astro';
+import ProductGrid from '../components/ProductGrid.astro';
+import ShowList from '../components/ShowList.astro';
+import { t } from '../i18n';
+import { site } from '../site.config';
+
+const lang = 'en' as const;
+const s = t[lang];
+---
+<Base lang={lang} path="/">
+  <section class="hero" id="home">
+    <!-- Band photo: add public/images/hero.jpg and uncomment
+    <img class="hero-photo" src="/images/hero.jpg" alt="" /> -->
+    <div class="hero-inner">
+      <h1 style="position:absolute;left:-9999px">{site.name}</h1>
+      <img class="hero-logo" src="/images/logo.png" alt={site.name} width="2000" height="1000" fetchpriority="high" />
+      <p>{s.tagline}</p>
+      <div class="hero-actions">
+        <a class="btn primary" href="#tour">{s.seeTour}</a>
+        <a class="btn" href="#shop">{s.shopNow}</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="tour" aria-labelledby="tour-title">
+    <div class="wrap">
+      <div class="section-head"><h2 id="tour-title">{s.nav.tour}</h2></div>
+      <ShowList lang={lang} />
+    </div>
+  </section>
+
+  <section class="section" id="music" aria-labelledby="music-title">
+    <div class="wrap">
+      <div class="section-head"><h2 id="music-title">{s.nav.music}</h2></div>
+      <Music lang={lang} />
+    </div>
+  </section>
+
+  <section class="section" id="shop" aria-labelledby="shop-title">
+    <div class="wrap">
+      <div class="section-head">
+        <h2 id="shop-title">{s.merch}</h2>
+      </div>
+      <p class="lead" style="margin:-8px 0 24px">{s.merchNote}</p>
+      <ProductGrid lang={lang} />
+    </div>
+  </section>
+
+  <section class="section" id="about" aria-labelledby="about-title">
+    <div class="wrap prose">
+      <div class="section-head"><h2 id="about-title">{s.about}</h2></div>
+      <p>{s.aboutText}</p>
+    </div>
+  </section>
+
+  <section class="section" id="contact" aria-labelledby="contact-title">
+    <div class="wrap">
+      <div class="section-head"><h2 id="contact-title">{s.contact}</h2></div>
+      <p class="lead" style="margin:-8px 0 24px">{s.contactIntro}</p>
+      <ContactForm lang={lang} />
+    </div>
+  </section>
+
+  <Newsletter lang={lang} />
+</Base>

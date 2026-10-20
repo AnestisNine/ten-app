@@ -1,0 +1,29 @@
+---
+import Base from '../layouts/Base.astro';
+import { t } from '../i18n';
+import { site } from '../site.config';
+
+const lang = 'en' as const;
+const s = t[lang];
+---
+<Base lang={lang} path="/privacy" title={s.privacyPolicy}>
+  <div class="wrap page-head"><h1>{s.privacyPolicy}</h1></div>
+  <div class="wrap prose" style="padding-bottom:64px">
+      <>
+        <p>Controller: {site.name}, <a href={`mailto:${site.email}`}>{site.email}</a>.</p>
+        <h2>What we collect</h2>
+        <ul>
+          <li><strong>Contact form:</strong> name, email, (optional) phone and your message — to reply to you (legitimate interest / pre-contractual steps for bookings).</li>
+          <li><strong>Newsletter:</strong> your email and when you gave consent — only with your explicit consent, which you can withdraw at any time.</li>
+        </ul>
+        <h2>Cookies</h2>
+        <p>This site uses no tracking or advertising cookies and no third-party analytics. Fonts are served from this site.</p>
+        <h2>Retention</h2>
+        <p>Contact messages for as long as the conversation needs (at most 2 years). Newsletter data until you unsubscribe.</p>
+        <h2>Who sees it</h2>
+        <p>Only band team members who need it. Data is hosted on our own server in Greece; traffic passes through Cloudflare (CDN/security).</p>
+        <h2>Your rights</h2>
+        <p>Access, rectification, erasure, restriction, portability, objection: email <a href={`mailto:${site.email}`}>{site.email}</a>. You may also complain to the Hellenic Data Protection Authority (www.dpa.gr).</p>
+      </>
+  </div>
+</Base>

@@ -28,12 +28,12 @@ const labels = { tickets: s.tickets, soon: s.soon, none: s.noShows, error: s.loa
   }
 
   for (const el of document.querySelectorAll<HTMLElement>('.show-list')) {
-    const lang = el.dataset.lang ?? 'el';
+    const lang = el.dataset.lang ?? 'en';
     const limit = Number(el.dataset.limit) || Infinity;
     const l = JSON.parse(el.dataset.labels ?? '{}');
     const status = el.querySelector('.status')!;
     const list = el.querySelector<HTMLUListElement>('.shows')!;
-    const locale = lang === 'en' ? 'en-GB' : 'el-GR';
+    const locale = 'en-GB';
     getJson<{ items: Show[] }>('/api/public/shows')
       .then(({ items }) => {
         if (items.length === 0) {
