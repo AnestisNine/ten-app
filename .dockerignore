@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/.dart_tool
+apps/manager/build
+apps/manager/ios
+.git
+.env
+.env.*
+data
+backups
+docs

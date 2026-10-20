@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
+import '../core/rent.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../data/app_store.dart';
@@ -30,43 +31,20 @@ class DashboardScreen extends StatelessWidget {
     final nextLive = AppStore.nextConfirmedLive();
     final confirmedCount = AppStore.confirmedUpcomingCount();
 
-    final pendingOrders = AppStore.orders
-        .where((o) =>
-            o.status != OrderStatus.completed &&
-            o.status != OrderStatus.cancelled)
-        .length;
+    final pendingOrders =
+        AppStore.orders.where((o) => o.status != OrderStatus.completed && o.status != OrderStatus.cancelled).length;
 
-    final unread =
-        AppStore.notifications.where((n) => !n.read).length;
+    final unread = AppStore.notifications.where((n) => !n.read).length;
 
     final rehearsal = AppStore.nextRehearsal();
-    final rentPaidThisMonth = AppStore.rentPayments
-        .where((p) =>
-            p.month.year == now.year && p.month.month == now.month)
-        .fold<double>(0, (sum, p) => sum + p.amount);
-    final rentRemaining =
-        (AppStore.monthlyRentCost.value - rentPaidThisMonth)
-            .clamp(0, double.infinity)
-            .toDouble();
-
-    var rentDebt = 0.0;
-    final people = AppStore.rentPeople;
-    if (people.isNotEmpty) {
-      final share = AppStore.monthlyRentCost.value / people.length;
-      for (final person in people) {
-        for (var m = 1; m <= now.month; m++) {
-          final paid = AppStore.rentPayments
-              .where((p) =>
-                  p.personId == person.id &&
-                  p.month.year == now.year &&
-                  p.month.month == m)
-              .fold<double>(0, (sum, p) => sum + p.amount);
-          if (share - paid > 0) {
-            rentDebt += share - paid;
-          }
-        }
-      }
-    }
+    final finance = AppStore.can('finance', 'read');
+    final rent = RentCalculator(
+      monthlyRentCents: AppStore.settings.value.monthlyRentCents,
+      people: AppStore.rentPeople,
+      payments: AppStore.rentPayments,
+    );
+    final rentRemaining = rent.remainingForMonth(now.year, now.month);
+    final rentDebt = rent.yearDebtTotal(now.year, now.month);
 
     final hour = now.hour;
     final greeting = hour < 12
@@ -122,34 +100,33 @@ class DashboardScreen extends StatelessWidget {
               return GridView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate:
-                    SliverGridDelegateWithFixedCrossAxisCount(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                   mainAxisExtent: 124,
                 ),
                 children: [
-                  ValueListenableBuilder<double>(
-                    valueListenable: AppStore.cashboxBalance,
-                    builder: (context, balance, _) {
-                      return KpiCard(
-                        title: 'Υπόλοιπο ταμείου',
-                        value: formatEuro(balance),
-                        icon: Icons.savings_outlined,
-                        color: balance >= 0
-                            ? TbnColors.success
-                            : TbnColors.danger,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            TbnPageRoute<void>(
-                              builder: (_) => const CashboxScreen(),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
+                  if (finance)
+                    ValueListenableBuilder<AppSettings>(
+                      valueListenable: AppStore.settings,
+                      builder: (context, settings, _) {
+                        final balance = settings.cashboxBalanceCents;
+                        return KpiCard(
+                          title: 'Υπόλοιπο ταμείου',
+                          value: formatEuro(balance),
+                          icon: Icons.savings_outlined,
+                          color: balance >= 0 ? TbnColors.success : TbnColors.danger,
+                          onTap: () {
+                            Navigator.of(context).push(
+                              TbnPageRoute<void>(
+                                builder: (_) => const CashboxScreen(),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
                   KpiCard(
                     title: 'Επιβεβαιωμένα live',
                     value: '$confirmedCount',
@@ -157,42 +134,34 @@ class DashboardScreen extends StatelessWidget {
                     color: TbnColors.info,
                     onTap: () => onNavigate(_live),
                   ),
-                  KpiCard(
-                    title: 'Υπόλοιπο ενοικίου',
-                    value: formatEuro(rentRemaining),
-                    icon: Icons.home_work_outlined,
-                    color: rentRemaining > 0
-                        ? TbnColors.warning
-                        : TbnColors.success,
-                    onTap: () => onNavigate(_menu),
-                  ),
-                  KpiCard(
-                    title: 'Οφειλές ενοικίου (έτος)',
-                    value: formatEuro(rentDebt),
-                    icon: Icons.payments_outlined,
-                    color: rentDebt > 0
-                        ? TbnColors.danger
-                        : TbnColors.success,
-                    onTap: () => onNavigate(_menu),
-                  ),
+                  if (finance)
+                    KpiCard(
+                      title: 'Υπόλοιπο ενοικίου',
+                      value: formatEuro(rentRemaining),
+                      icon: Icons.home_work_outlined,
+                      color: rentRemaining > 0 ? TbnColors.warning : TbnColors.success,
+                      onTap: () => onNavigate(_menu),
+                    ),
+                  if (finance)
+                    KpiCard(
+                      title: 'Οφειλές ενοικίου (έτος)',
+                      value: formatEuro(rentDebt),
+                      icon: Icons.payments_outlined,
+                      color: rentDebt > 0 ? TbnColors.danger : TbnColors.success,
+                      onTap: () => onNavigate(_menu),
+                    ),
                   KpiCard(
                     title: 'Παραγγελίες σε εκκρεμότητα',
                     value: '$pendingOrders',
                     icon: Icons.local_shipping_outlined,
-                    color: pendingOrders > 0
-                        ? TbnColors.warning
-                        : TbnColors.success,
+                    color: pendingOrders > 0 ? TbnColors.warning : TbnColors.success,
                     onTap: () => onNavigate(_merch),
                   ),
                   KpiCard(
                     title: 'Ειδοποιήσεις',
-                    value: unread > 0
-                        ? '$unread νέες'
-                        : '${AppStore.notifications.length}',
+                    value: unread > 0 ? '$unread νέες' : '${AppStore.notifications.length}',
                     icon: Icons.notifications_none_rounded,
-                    color: unread > 0
-                        ? TbnColors.accent
-                        : TbnColors.info,
+                    color: unread > 0 ? TbnColors.accent : TbnColors.info,
                     onTap: () => onNavigate(_menu),
                   ),
                 ],
@@ -221,9 +190,7 @@ class _NewsCard extends StatelessWidget {
   final VoidCallback onRehearsal;
 
   static String _countdown(DateTime date, DateTime today) {
-    final days = DateTime(date.year, date.month, date.day)
-        .difference(today)
-        .inDays;
+    final days = DateTime(date.year, date.month, date.day).difference(today).inDays;
     if (days <= 0) {
       return 'Σήμερα';
     }
@@ -252,9 +219,7 @@ class _NewsCard extends StatelessWidget {
           _NewsRow(
             icon: Icons.mic_none_rounded,
             color: TbnColors.accent,
-            title: l == null
-                ? 'Κανένα προγραμματισμένο live'
-                : '${l.venue} · ${l.city}',
+            title: l == null ? 'Κανένα προγραμματισμένο live' : '${l.venue} · ${l.city}',
             subtitle: l == null
                 ? 'Δεν υπάρχει επιβεβαιωμένο live'
                 : '${greekDateLong(l.date)} · '
@@ -265,14 +230,12 @@ class _NewsCard extends StatelessWidget {
           _NewsRow(
             icon: Icons.music_note_rounded,
             color: TbnColors.info,
-            title: r == null
-                ? 'Καμία προγραμματισμένη πρόβα'
-                : r.title,
+            title: r == null ? 'Καμία προγραμματισμένη πρόβα' : r.title,
             subtitle: r == null
                 ? 'Δεν υπάρχει πρόβα στο ημερολόγιο'
-                : '${greekDateLong(r.dateTime)} · '
-                    '${r.dateTime.hour.toString().padLeft(2, '0')}:'
-                    '${r.dateTime.minute.toString().padLeft(2, '0')}'
+                : '${greekDateLong(r.startsAt)} · '
+                    '${r.startsAt.hour.toString().padLeft(2, '0')}:'
+                    '${r.startsAt.minute.toString().padLeft(2, '0')}'
                     '${r.location.isEmpty ? '' : ' · ${r.location}'}',
             onTap: onRehearsal,
           ),

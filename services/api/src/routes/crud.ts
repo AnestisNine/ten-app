@@ -52,6 +52,16 @@ export function rowToPlain(row: Row): Row {
   return out;
 }
 
+/** API timestamps arrive as ISO strings; Drizzle's timestamp columns expect Date objects. */
+export function inputToDb(table: AnyTable, values: Row): Row {
+  const out: Row = { ...values };
+  for (const [key, value] of Object.entries(values)) {
+    const column = table[key] as PgColumn | undefined;
+    if (typeof value === 'string' && column?.columnType === 'PgTimestamp') out[key] = new Date(value);
+  }
+  return out;
+}
+
 const IdParam = z.object({ id: z.uuid() });
 const errorSchema = z.object({ error: z.string(), message: z.string(), details: z.unknown().optional() });
 const errors = {
@@ -146,7 +156,7 @@ export function registerCrud(app: App, def: EntityDef) {
       const { db } = c.var.deps;
       const user = c.var.user!;
       const input = c.req.valid('json') as Row;
-      const values = def.toDb ? def.toDb(input, user) : input;
+      const values = inputToDb(t, def.toDb ? def.toDb(input, user) : input);
       try {
         const created = await db.transaction(async (tx) => {
           const [row] = (await tx.insert(t).values(values).returning()) as Row[];
@@ -190,7 +200,7 @@ export function registerCrud(app: App, def: EntityDef) {
         const updated = await db.transaction(async (tx) => {
           const before = await findOne(tx, user, id);
           assertModify(user, before, 'write');
-          const values = def.toDb ? def.toDb(input, user, before) : input;
+          const values = inputToDb(t, def.toDb ? def.toDb(input, user, before) : input);
           const [row] = (await tx.update(t).set(values).where(eq(t.id, id)).returning()) as Row[];
           const after = await toApi(row!);
           const changes = diffObjects(before, after);

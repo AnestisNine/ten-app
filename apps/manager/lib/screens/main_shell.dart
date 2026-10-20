@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/app_info.dart';
 import '../data/app_store.dart';
+import '../l10n/app_localizations.dart';
 import 'auth_screen.dart';
 import 'calendar_screen.dart';
 import 'dashboard_screen.dart';
@@ -28,19 +29,18 @@ class _NavItem {
 class _MainShellState extends State<MainShell> {
   int index = 0;
 
-  static const _items = <_NavItem>[
-    _NavItem(Icons.home_outlined, Icons.home_rounded, 'Home'),
-    _NavItem(Icons.mic_none_rounded, Icons.mic_rounded, 'Live'),
-    _NavItem(Icons.airport_shuttle_outlined, Icons.airport_shuttle,
-        'Tours'),
-    _NavItem(Icons.inventory_2_outlined, Icons.inventory_2, 'Merch'),
-    _NavItem(Icons.calendar_month_outlined, Icons.calendar_month,
-        'Ημερολόγιο'),
-    _NavItem(Icons.grid_view_outlined, Icons.grid_view_rounded, 'Menu'),
-  ];
+  List<_NavItem> _items(AppLocalizations l) => <_NavItem>[
+        _NavItem(Icons.home_outlined, Icons.home_rounded, l.navHome),
+        _NavItem(Icons.mic_none_rounded, Icons.mic_rounded, l.navLive),
+        _NavItem(Icons.airport_shuttle_outlined, Icons.airport_shuttle, l.navTours),
+        _NavItem(Icons.inventory_2_outlined, Icons.inventory_2, l.navMerch),
+        _NavItem(Icons.calendar_month_outlined, Icons.calendar_month, l.navCalendar),
+        _NavItem(Icons.grid_view_outlined, Icons.grid_view_rounded, l.navMenu),
+      ];
 
   @override
   Widget build(BuildContext context) {
+    final items = _items(AppLocalizations.of(context));
     final pages = <Widget>[
       DashboardScreen(
         onNavigate: (target) => setState(() => index = target),
@@ -58,8 +58,7 @@ class _MainShellState extends State<MainShell> {
         constraints: const BoxConstraints(maxWidth: 960),
         child: ValueListenableBuilder<int>(
           valueListenable: AppStore.dataVersion,
-          builder: (context, _, __) =>
-              IndexedStack(index: index, children: pages),
+          builder: (context, _, __) => IndexedStack(index: index, children: pages),
         ),
       ),
     );
@@ -73,14 +72,13 @@ class _MainShellState extends State<MainShell> {
             NavigationRail(
               extended: true,
               selectedIndex: index,
-              onDestinationSelected: (value) =>
-                  setState(() => index = value),
+              onDestinationSelected: (value) => setState(() => index = value),
               leading: const Padding(
                 padding: EdgeInsets.fromLTRB(8, 24, 8, 20),
                 child: _Brand(),
               ),
               destinations: [
-                for (final item in _items)
+                for (final item in items)
                   NavigationRailDestination(
                     icon: Icon(item.icon),
                     selectedIcon: Icon(item.selectedIcon),
@@ -106,10 +104,9 @@ class _MainShellState extends State<MainShell> {
         ),
         child: NavigationBar(
           selectedIndex: index,
-          onDestinationSelected: (value) =>
-              setState(() => index = value),
+          onDestinationSelected: (value) => setState(() => index = value),
           destinations: [
-            for (final item in _items)
+            for (final item in items)
               NavigationDestination(
                 icon: Icon(item.icon),
                 selectedIcon: Icon(item.selectedIcon),

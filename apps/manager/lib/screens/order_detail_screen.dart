@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../core/models.dart';
+import '../core/money.dart';
 import '../data/app_store.dart';
 
 class OrderDetailScreen extends StatefulWidget {
@@ -22,11 +23,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final order = widget.order;
     final product = AppStore.productById(order.productId);
     final customer = AppStore.customerById(order.customerId);
-    final subtotal = product.salePrice * order.quantity;
-    final total = subtotal + order.shippingCost;
+    final canEdit = AppStore.can('orders', 'write');
+    final subtotal = (product?.salePriceCents ?? 0) * order.quantity;
+    final total = subtotal + order.shippingCostCents;
 
     return Scaffold(
-      appBar: AppBar(title: Text(order.id)),
+      appBar: AppBar(title: Text('Παραγγελία ${order.label}')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -42,14 +44,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     child: Text(orderStatusLabel(s)),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => order.status = value);
-                  AppStore.log(
-                    'Orders',
-                    '${order.id} → ${orderStatusLabel(value)}',
-                  );
-                },
+                onChanged: !canEdit
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() => order.status = value);
+                        AppStore.update(order);
+                      },
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<ShippingMethod>(
@@ -63,53 +64,47 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     child: Text(shippingMethodLabel(s)),
                   );
                 }).toList(),
-                onChanged: (value) {
-                  if (value == null) return;
-                  setState(() => order.shippingMethod = value);
-                  AppStore.log(
-                    'Orders',
-                    '${order.id}: shipping → ${shippingMethodLabel(value)}',
-                  );
-                },
+                onChanged: !canEdit
+                    ? null
+                    : (value) {
+                        if (value == null) return;
+                        setState(() => order.shippingMethod = value);
+                        AppStore.update(order);
+                      },
               ),
             ],
           ),
           _card(
             'Πελάτης',
-            [
-              _tapRow(
-                'Όνομα',
-                customer.fullName,
-                null,
-              ),
-              _tapRow(
-                'Τηλέφωνο',
-                customer.phone,
-                () => _openPhone(customer.phone),
-              ),
-              _tapRow(
-                'Email',
-                customer.email,
-                () => _openEmail(customer.email),
-              ),
-              _tapRow(
-                'Διεύθυνση',
-                '${customer.address}, ${customer.city} ${customer.postalCode}, ${customer.country}',
-                null,
-              ),
-            ],
+            customer == null
+                ? [
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 6),
+                      child: Text('Δεν έχεις πρόσβαση στα στοιχεία πελατών.'),
+                    ),
+                  ]
+                : [
+                    _tapRow('Όνομα', customer.fullName, null),
+                    _tapRow('Τηλέφωνο', customer.phone, () => _openPhone(customer.phone)),
+                    _tapRow('Email', customer.email, () => _openEmail(customer.email)),
+                    _tapRow(
+                      'Διεύθυνση',
+                      '${customer.address}, ${customer.city} ${customer.postalCode}, ${customer.country}',
+                      null,
+                    ),
+                  ],
           ),
           _card(
             'Παραγγελία',
             [
               _row('Source', orderSourceLabel(order.source)),
               _row('Τύπος', orderContextLabel(order.context)),
-              _row('Προϊόν', product.name),
+              _row('Προϊόν', product?.name ?? '—'),
               _row('Ποσότητα', '${order.quantity}'),
-              _row('Τιμή / τεμ.', '${product.salePrice.toStringAsFixed(2)} €'),
-              _row('Υποσύνολο', '${subtotal.toStringAsFixed(2)} €'),
-              _row('Μεταφορικά', '${order.shippingCost.toStringAsFixed(2)} €'),
-              _row('Σύνολο', '${total.toStringAsFixed(2)} €', bold: true),
+              _row('Τιμή / τεμ.', product == null ? '—' : formatCents(product.salePriceCents)),
+              _row('Υποσύνολο', formatCents(subtotal)),
+              _row('Μεταφορικά', formatCents(order.shippingCostCents)),
+              _row('Σύνολο', formatCents(total), bold: true),
             ],
           ),
           _card(
@@ -191,8 +186,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 value,
                 style: TextStyle(
                   fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
-                  decoration:
-                      onTap == null ? null : TextDecoration.underline,
+                  decoration: onTap == null ? null : TextDecoration.underline,
                 ),
               ),
             ),

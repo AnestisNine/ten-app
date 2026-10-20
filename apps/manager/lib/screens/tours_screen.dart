@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
+import '../core/money.dart';
 import '../core/place_widgets.dart';
 import '../core/places.dart';
 import '../core/route_widgets.dart';
@@ -50,22 +51,19 @@ class _ToursScreenState extends State<ToursScreen> {
               subtitle: 'Φτιάξε το πρώτο με το κουμπί «Νέο»',
             ),
           ...AppStore.tours.map((tour) {
-            final tourLives = AppStore.lives
-                .where((live) => live.tourId == tour.id)
-                .toList()
+            final tourLives = AppStore.lives.where((live) => live.tourId == tour.id).toList()
               ..sort((a, b) => a.date.compareTo(b.date));
 
-            final income = tourLives.fold<double>(
+            final income = tourLives.fold<int>(
               0,
-              (sum, live) => sum + live.totalIncome,
+              (sum, live) => sum + live.totalIncomeCents,
             );
-            final expenses = tourLives.fold<double>(
+            final expenses = tourLives.fold<int>(
               0,
-              (sum, live) => sum + live.totalExpenses,
+              (sum, live) => sum + live.totalExpensesCents,
             );
             final net = income - expenses;
-            final netColor =
-                net >= 0 ? TbnColors.success : TbnColors.danger;
+            final netColor = net >= 0 ? TbnColors.success : TbnColors.danger;
 
             return Card(
               clipBehavior: Clip.antiAlias,
@@ -80,8 +78,7 @@ class _ToursScreenState extends State<ToursScreen> {
                   ),
                   shape: const Border(),
                   collapsedShape: const Border(),
-                  childrenPadding:
-                      const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
                   leading: const IconChip(
                     icon: Icons.airport_shuttle_outlined,
                     size: 40,
@@ -96,8 +93,7 @@ class _ToursScreenState extends State<ToursScreen> {
                     ),
                   ),
                   trailing: StatusPill(
-                    label:
-                        '${net >= 0 ? '+' : ''}${formatEuro(net)}',
+                    label: '${net >= 0 ? '+' : ''}${formatEuro(net)}',
                     color: netColor,
                   ),
                   children: [
@@ -137,9 +133,7 @@ class _ToursScreenState extends State<ToursScreen> {
                     ...tourLives.asMap().entries.map((entry) {
                       final index = entry.key;
                       final live = entry.value;
-                      final next = index + 1 < tourLives.length
-                          ? tourLives[index + 1]
-                          : null;
+                      final next = index + 1 < tourLives.length ? tourLives[index + 1] : null;
 
                       return Column(
                         children: [
@@ -147,11 +141,10 @@ class _ToursScreenState extends State<ToursScreen> {
                             borderRadius: BorderRadius.circular(12),
                             onTap: () => Navigator.of(context)
                                 .push(
-                                  TbnPageRoute<void>(
-                                    builder: (_) =>
-                                        LiveDetailScreen(live: live),
-                                  ),
-                                )
+                              TbnPageRoute<void>(
+                                builder: (_) => LiveDetailScreen(live: live),
+                              ),
+                            )
                                 .then((_) {
                               if (mounted) setState(() {});
                             }),
@@ -160,51 +153,49 @@ class _ToursScreenState extends State<ToursScreen> {
                                 vertical: 4,
                               ),
                               child: Row(
-                            children: [
-                              DateBadge(
-                                date: live.date,
-                                color: liveStatusColor(live.status),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      live.venue,
-                                      style: t.titleSmall,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    Text(live.city, style: t.bodySmall),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.end,
                                 children: [
-                                  Text(
-                                    '+${formatEuro(live.totalIncome)}',
-                                    style: const TextStyle(
-                                      color: TbnColors.success,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
+                                  DateBadge(
+                                    date: live.date,
+                                    color: liveStatusColor(live.status),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          live.venue,
+                                          style: t.titleSmall,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        Text(live.city, style: t.bodySmall),
+                                      ],
                                     ),
                                   ),
-                                  Text(
-                                    '−${formatEuro(live.totalExpenses)}',
-                                    style: const TextStyle(
-                                      color: TbnColors.danger,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 13,
-                                    ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        '+${formatEuro(live.totalIncomeCents)}',
+                                        style: const TextStyle(
+                                          color: TbnColors.success,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                      Text(
+                                        '−${formatEuro(live.totalExpensesCents)}',
+                                        style: const TextStyle(
+                                          color: TbnColors.danger,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
                             ),
                           ),
                           if (next != null)
@@ -215,12 +206,10 @@ class _ToursScreenState extends State<ToursScreen> {
                                 bottom: 4,
                               ),
                               child: Row(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Padding(
-                                    padding:
-                                        const EdgeInsets.only(top: 6),
+                                    padding: const EdgeInsets.only(top: 6),
                                     child: Icon(
                                       Icons.south_rounded,
                                       size: 16,
@@ -265,7 +254,7 @@ class _ToursScreenState extends State<ToursScreen> {
 
   Widget _vanTile(TourItem tour) {
     final cs = Theme.of(context).colorScheme;
-    final id = tour.vanId ?? AppStore.vanId.value;
+    final id = tour.vanId ?? AppStore.settings.value.vanId;
     final name = Vans.byId(id)?.name ?? 'Άλλο βαν';
     final cons = tour.consumption ?? AppStore.fuelConsumption.value;
     return Padding(
@@ -278,8 +267,7 @@ class _ToursScreenState extends State<ToursScreen> {
           borderRadius: BorderRadius.circular(12),
           onTap: () => _pickTourVan(tour),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               border: Border.all(color: cs.outlineVariant),
               borderRadius: BorderRadius.circular(12),
@@ -316,7 +304,7 @@ class _ToursScreenState extends State<ToursScreen> {
     final r = await showVanDialog(
       context,
       title: 'Βαν · ${tour.name}',
-      vanId: tour.vanId ?? AppStore.vanId.value,
+      vanId: tour.vanId ?? AppStore.settings.value.vanId,
       consumption: tour.consumption ?? AppStore.fuelConsumption.value,
     );
     if (r == null) return;
@@ -324,18 +312,13 @@ class _ToursScreenState extends State<ToursScreen> {
       tour.vanId = r.vanId;
       tour.consumption = r.consumption;
     });
-    AppStore.log(
-      'Tour',
-      '${tour.name}: βαν → ${Vans.byId(r.vanId)?.name ?? 'Άλλο'}, '
-      '${r.consumption.toStringAsFixed(1)} L/100km',
-    );
+    AppStore.update(tour);
   }
 
   void _addTour() {
     final name = TextEditingController();
     DateTime startDate = DateTime.now();
-    DateTime endDate =
-        DateTime.now().add(const Duration(days: 7));
+    DateTime endDate = DateTime.now().add(const Duration(days: 7));
 
     showModalBottomSheet<void>(
       context: context,
@@ -348,8 +331,7 @@ class _ToursScreenState extends State<ToursScreen> {
                 left: 20,
                 right: 20,
                 top: 20,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom + 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -401,9 +383,7 @@ class _ToursScreenState extends State<ToursScreen> {
                         context: context,
                         firstDate: startDate,
                         lastDate: DateTime(2035),
-                        initialDate: endDate.isBefore(startDate)
-                            ? startDate
-                            : endDate,
+                        initialDate: endDate.isBefore(startDate) ? startDate : endDate,
                       );
 
                       if (picked != null) {
@@ -421,23 +401,17 @@ class _ToursScreenState extends State<ToursScreen> {
                       }
 
                       final tour = TourItem(
-                        id: DateTime.now()
-                            .microsecondsSinceEpoch
-                            .toString(),
+                        id: newId(),
                         name: name.text.trim(),
                         startDate: startDate,
                         endDate: endDate,
-                        vanId: AppStore.vanId.value,
+                        vanId: AppStore.settings.value.vanId,
                         consumption: AppStore.fuelConsumption.value,
                       );
 
-                      setState(() {
-                        AppStore.tours.add(tour);
-                      });
-                      AppStore.log(
-                        'Tours',
-                        'Προστέθηκε νέο Tour: ${tour.name}',
-                      );
+                      AppStore.create(tour);
+                      setState(() {});
+
                       Navigator.pop(context);
                     },
                     child: const Text('Δημιουργία Tour'),
@@ -480,8 +454,7 @@ class _ToursScreenState extends State<ToursScreen> {
                     left: 20,
                     right: 20,
                     top: 20,
-                    bottom:
-                        MediaQuery.of(context).viewInsets.bottom + 24,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                   ),
                   children: [
                     Text(
@@ -543,50 +516,26 @@ class _ToursScreenState extends State<ToursScreen> {
                           return;
                         }
 
-                        setState(() {
-                          AppStore.lives.add(
-                            LiveItem(
-                              id: DateTime.now()
-                                  .microsecondsSinceEpoch
-                                  .toString(),
-                              venue: venue.text.trim(),
-                              city: place.city.trim(),
-                              country: place.countryName,
-                              countryCode: place.countryCode,
-                              lat: place.lat,
-                              lon: place.lon,
-                              date: date,
-                              status: LiveStatus.proposal,
-                              tourId: tour.id,
-                              cashIncome: double.tryParse(
-                                    cashIncome.text
-                                        .replaceAll(',', '.'),
-                                  ) ??
-                                  0,
-                              merchIncome: double.tryParse(
-                                    merchIncome.text
-                                        .replaceAll(',', '.'),
-                                  ) ??
-                                  0,
-                              soundExpenses: double.tryParse(
-                                    soundExpenses.text
-                                        .replaceAll(',', '.'),
-                                  ) ??
-                                  0,
-                              extraExpenses: double.tryParse(
-                                    extraExpenses.text
-                                        .replaceAll(',', '.'),
-                                  ) ??
-                                  0,
-                            ),
-                          );
-                        });
-
-                        AppStore.log(
-                          'Tours',
-                          'Προστέθηκε Live στο ${tour.name}: '
-                          '${venue.text.trim()}',
+                        AppStore.create(
+                          LiveItem(
+                            id: newId(),
+                            venue: venue.text.trim(),
+                            city: place.city.trim(),
+                            country: place.countryName,
+                            countryCode: place.countryCode,
+                            lat: place.lat,
+                            lon: place.lon,
+                            date: date,
+                            status: LiveStatus.proposal,
+                            tourId: tour.id,
+                            cashIncomeCents: parseCents(cashIncome.text) ?? 0,
+                            merchIncomeCents: parseCents(merchIncome.text) ?? 0,
+                            soundExpensesCents: parseCents(soundExpenses.text) ?? 0,
+                            extraExpensesCents: parseCents(extraExpenses.text) ?? 0,
+                          ),
                         );
+                        setState(() {});
+
                         Navigator.pop(context);
                       },
                       child: const Text('Προσθήκη Live'),
@@ -610,9 +559,7 @@ class _ToursScreenState extends State<ToursScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: TextField(
         controller: controller,
-        keyboardType: numeric
-            ? const TextInputType.numberWithOptions(decimal: true)
-            : TextInputType.text,
+        keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
         decoration: InputDecoration(labelText: label),
       ),
     );

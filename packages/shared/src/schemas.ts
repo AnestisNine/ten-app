@@ -27,6 +27,7 @@ export const RentPaymentMethod = z.enum(['cash', 'bankTransfer', 'iris', 'revolu
 export const GeneralExpenseCategory = z.enum(['recordingFee', 'rentFee']);
 export const MemberRole = z.enum(['musician', 'driver', 'soundEngineer', 'technician']);
 export const CalendarVisibility = z.enum(['team', 'private']);
+export const AuditAction = z.enum(['create', 'update', 'delete', 'read', 'login', 'export']);
 
 // ---------- entities ----------
 
@@ -201,7 +202,7 @@ export const AuditEntry = z.object({
   userName: z.string().nullable(),
   entity: z.string(),
   entityId: z.string().nullable(),
-  action: z.enum(['create', 'update', 'delete', 'read', 'login', 'export']),
+  action: AuditAction,
   summary: z.string(),
 });
 

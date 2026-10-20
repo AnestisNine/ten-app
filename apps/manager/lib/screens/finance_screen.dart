@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../core/models.dart';
+import '../core/finance.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../data/app_store.dart';
@@ -10,44 +10,22 @@ class FinanceScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final completedLives = AppStore.lives.where(
-      (live) => live.status == LiveStatus.completed,
+    final f = FinanceSummary(
+      lives: AppStore.lives,
+      orders: AppStore.orders,
+      products: AppStore.products,
+      streaming: AppStore.streamingIncomes,
+      expenses: AppStore.generalExpenses,
     );
-
-    final liveIncome = completedLives.fold<double>(
-      0,
-      (sum, live) => sum + live.totalIncome,
-    );
-
-    final liveExpenses = completedLives.fold<double>(
-      0,
-      (sum, live) => sum + live.totalExpenses,
-    );
-
-    final completedOrderIncome = AppStore.orders
-        .where((order) => order.status == OrderStatus.completed)
-        .fold<double>(0, (sum, order) {
-      final product = AppStore.productById(order.productId);
-      return sum + (product.salePrice * order.quantity) + order.shippingCost;
-    });
-
-    final streamingIncome = AppStore.streamingIncomeTotal.value;
-
-    final recordingExpenses = AppStore.generalExpenses
-        .where((item) =>
-            item.category == GeneralExpenseCategory.recordingFee)
-        .fold<double>(0, (sum, item) => sum + item.amount);
-
-    final rentExpenses = AppStore.generalExpenses
-        .where((item) =>
-            item.category == GeneralExpenseCategory.rentFee)
-        .fold<double>(0, (sum, item) => sum + item.amount);
-
-    final totalIncome =
-        liveIncome + completedOrderIncome + streamingIncome;
-    final totalExpenses =
-        liveExpenses + recordingExpenses + rentExpenses;
-    final net = totalIncome - totalExpenses;
+    final liveIncome = f.liveIncome;
+    final liveExpenses = f.liveExpenses;
+    final completedOrderIncome = f.orderIncome;
+    final streamingIncome = f.streamingIncome;
+    final recordingExpenses = f.recordingExpenses;
+    final rentExpenses = f.rentExpenses;
+    final totalIncome = f.totalIncome;
+    final totalExpenses = f.totalExpenses;
+    final net = f.net;
 
     final t = Theme.of(context).textTheme;
     final netColor = net >= 0 ? TbnColors.success : TbnColors.danger;
@@ -158,7 +136,7 @@ class FinanceScreen extends StatelessWidget {
   Widget _total(
     BuildContext context,
     String label,
-    double amount,
+    int amount,
     Color color,
   ) {
     final t = Theme.of(context).textTheme;
@@ -201,14 +179,13 @@ class FinanceScreen extends StatelessWidget {
     BuildContext context,
     IconData icon,
     String title,
-    double amount,
+    int amount,
     Color color,
     String? subtitle,
   ) {
     final t = Theme.of(context).textTheme;
     return ListTile(
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
       leading: IconChip(icon: icon, color: color, size: 38),
       title: Text(title),
       subtitle: subtitle == null ? null : Text(subtitle),

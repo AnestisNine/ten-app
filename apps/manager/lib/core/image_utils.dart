@@ -2,13 +2,19 @@ import 'dart:convert';
 
 import 'package:flutter/widgets.dart';
 
+import '../api/api_client.dart';
+
 /// Returns an [ImageProvider] for a stored image reference, or null.
 ///
-/// Images are stored as `data:image/...;base64,...` strings so they work
-/// identically on iOS and on web (no dart:io / file paths).
-/// Legacy local file paths from v0.7.x are ignored (fallback icon shown).
+/// Server images (`/api/v1/files/...`) are loaded with the session cookie. Older `data:image/...`
+/// references from the local-only versions are still shown.
 ImageProvider? imageProviderFromRef(String? ref) {
-  if (ref == null || !ref.startsWith('data:image')) {
+  if (ref == null) return null;
+  if (ref.startsWith('/api/')) {
+    final api = ApiClient.instance;
+    return NetworkImage(api.uri(ref).toString(), headers: api.authHeaders);
+  }
+  if (!ref.startsWith('data:image')) {
     return null;
   }
   final comma = ref.indexOf(',');

@@ -34,16 +34,13 @@ class _LiveManagerScreenState extends State<LiveManagerScreen> {
     final startOfToday = DateTime(today.year, today.month, today.day);
     final upcoming = items.where((l) => !l.date.isBefore(startOfToday)).toList()
       ..sort((a, b) => a.date.compareTo(b.date));
-    final past = items.where((l) => l.date.isBefore(startOfToday)).toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    final past = items.where((l) => l.date.isBefore(startOfToday)).toList()..sort((a, b) => b.date.compareTo(a.date));
     items
       ..clear()
       ..addAll(upcoming)
       ..addAll(past);
 
-    final title = filter == null
-        ? 'Όλα τα live'
-        : liveStatusSectionTitle(filter!);
+    final title = filter == null ? 'Όλα τα live' : liveStatusSectionTitle(filter!);
 
     final list = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -119,15 +116,13 @@ class _LiveManagerScreenState extends State<LiveManagerScreen> {
     );
   }
 
-  int _count(LiveStatus? status) => status == null
-      ? AppStore.lives.length
-      : AppStore.lives.where((l) => l.status == status).length;
+  int _count(LiveStatus? status) =>
+      status == null ? AppStore.lives.length : AppStore.lives.where((l) => l.status == status).length;
 
   Widget _statusSidebar() {
     final entries = <MapEntry<LiveStatus?, String>>[
       const MapEntry(null, 'Όλα'),
-      for (final s in LiveStatus.values)
-        MapEntry(s, liveStatusGroupLabel(s)),
+      for (final s in LiveStatus.values) MapEntry(s, liveStatusGroupLabel(s)),
     ];
 
     return Card(
@@ -140,9 +135,7 @@ class _LiveManagerScreenState extends State<LiveManagerScreen> {
               _SidebarItem(
                 label: e.value,
                 count: _count(e.key),
-                color: e.key == null
-                    ? TbnColors.accent
-                    : liveStatusColor(e.key!),
+                color: e.key == null ? TbnColors.accent : liveStatusColor(e.key!),
                 selected: filter == e.key,
                 onTap: () => setState(() => filter = e.key),
               ),
@@ -292,9 +285,9 @@ class _LiveManagerScreenState extends State<LiveManagerScreen> {
                   if (venue.text.trim().isEmpty || !place.hasCity) {
                     return;
                   }
-                  AppStore.lives.add(
+                  AppStore.create(
                     LiveItem(
-                      id: DateTime.now().microsecondsSinceEpoch.toString(),
+                      id: newId(),
                       venue: venue.text.trim(),
                       city: place.city.trim(),
                       country: place.countryName,
@@ -305,10 +298,7 @@ class _LiveManagerScreenState extends State<LiveManagerScreen> {
                       status: LiveStatus.proposal,
                     ),
                   );
-                  AppStore.log(
-                    'Live',
-                    'Προστέθηκε νέο Live: ${venue.text.trim()}',
-                  );
+
                   setState(() {});
                   Navigator.pop(context);
                 },
@@ -341,9 +331,7 @@ class _SidebarItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     return Material(
-      color: selected
-          ? TbnColors.accent.withValues(alpha: 0.14)
-          : Colors.transparent,
+      color: selected ? TbnColors.accent.withValues(alpha: 0.14) : Colors.transparent,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -364,9 +352,7 @@ class _SidebarItem extends StatelessWidget {
               Expanded(
                 child: Text(
                   label,
-                  style: selected
-                      ? t.titleSmall
-                      : t.bodyMedium,
+                  style: selected ? t.titleSmall : t.bodyMedium,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),

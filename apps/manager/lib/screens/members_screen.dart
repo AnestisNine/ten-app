@@ -25,17 +25,13 @@ class _MembersScreenState extends State<MembersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          selectionMode
-              ? '${selectedMemberIds.length} επιλεγμένα'
-              : 'Μέλη',
+          selectionMode ? '${selectedMemberIds.length} επιλεγμένα' : 'Μέλη',
         ),
         actions: [
           if (selectionMode)
             IconButton(
               tooltip: 'Export επιλεγμένων σε Excel',
-              onPressed: selectedMemberIds.isEmpty
-                  ? null
-                  : _exportSelectedMembers,
+              onPressed: selectedMemberIds.isEmpty ? null : _exportSelectedMembers,
               icon: const Icon(Icons.table_view_outlined),
             ),
           if (selectionMode)
@@ -49,7 +45,7 @@ class _MembersScreenState extends State<MembersScreen> {
               },
               icon: const Icon(Icons.close),
             )
-          else
+          else if (AppStore.can('members', 'write'))
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilledButton.icon(
@@ -66,7 +62,7 @@ class _MembersScreenState extends State<MembersScreen> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
         children: [
-          if (!selectionMode)
+          if (!selectionMode && AppStore.can('membersSensitive', 'read'))
             Card(
               margin: EdgeInsets.zero,
               child: ListTile(
@@ -106,9 +102,7 @@ class _MembersScreenState extends State<MembersScreen> {
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
                 side: BorderSide(
-                  color: selected
-                      ? TbnColors.accent
-                      : Theme.of(context).colorScheme.outline,
+                  color: selected ? TbnColors.accent : Theme.of(context).colorScheme.outline,
                   width: selected ? 1.5 : 1,
                 ),
               ),
@@ -134,25 +128,16 @@ class _MembersScreenState extends State<MembersScreen> {
                         Padding(
                           padding: const EdgeInsets.only(right: 8),
                           child: Icon(
-                            selected
-                                ? Icons.check_circle
-                                : Icons.radio_button_unchecked,
-                            color: selected
-                                ? TbnColors.accent
-                                : Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                            selected ? Icons.check_circle : Icons.radio_button_unchecked,
+                            color: selected ? TbnColors.accent : Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ),
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor:
-                            TbnColors.accent.withValues(alpha: 0.15),
+                        backgroundColor: TbnColors.accent.withValues(alpha: 0.15),
                         foregroundColor: TbnColors.accent,
                         child: Text(
-                          member.name.isEmpty
-                              ? '?'
-                              : member.name[0].toUpperCase(),
+                          member.name.isEmpty ? '?' : member.name[0].toUpperCase(),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                           ),
@@ -178,8 +163,7 @@ class _MembersScreenState extends State<MembersScreen> {
                       if (!selectionMode)
                         Icon(
                           Icons.chevron_right_rounded,
-                          color:
-                              Theme.of(context).colorScheme.onSurfaceVariant,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
                         ),
                     ],
                   ),
@@ -248,9 +232,7 @@ class _MembersScreenState extends State<MembersScreen> {
                     left: 20,
                     right: 20,
                     top: 20,
-                    bottom:
-                        MediaQuery.of(context).viewInsets.bottom +
-                            24,
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                   ),
                   children: [
                     const Text(
@@ -286,12 +268,10 @@ class _MembersScreenState extends State<MembersScreen> {
                     const SizedBox(height: 14),
                     ...fields.entries.map((entry) {
                       return Padding(
-                        padding:
-                            const EdgeInsets.only(bottom: 10),
+                        padding: const EdgeInsets.only(bottom: 10),
                         child: TextField(
                           controller: entry.value,
-                          keyboardType:
-                              _keyboardFor(entry.key),
+                          keyboardType: _keyboardFor(entry.key),
                           decoration: InputDecoration(
                             labelText: entry.key,
                           ),
@@ -300,112 +280,42 @@ class _MembersScreenState extends State<MembersScreen> {
                     }),
                     FilledButton(
                       onPressed: () {
-                        if (fields['ΟΝΟΜΑ']!.text.trim().isEmpty &&
-                            fields['ΕΠΩΝΥΜΟ']!
-                                .text
-                                .trim()
-                                .isEmpty) {
+                        if (fields['ΟΝΟΜΑ']!.text.trim().isEmpty && fields['ΕΠΩΝΥΜΟ']!.text.trim().isEmpty) {
                           return;
                         }
 
                         final member = MemberProfile(
-                          id: DateTime.now()
-                              .microsecondsSinceEpoch
-                              .toString(),
+                          id: newId(),
                           role: role,
-                          surname:
-                              fields['ΕΠΩΝΥΜΟ']!.text.trim(),
-                          name:
-                              fields['ΟΝΟΜΑ']!.text.trim(),
-                          fatherSurname: fields[
-                                  'ΕΠΩΝΥΜΟ ΠΑΤΡΟΣ']!
-                              .text
-                              .trim(),
-                          fatherName:
-                              fields['ΟΝΟΜΑ ΠΑΤΡΟΣ']!
-                                  .text
-                                  .trim(),
-                          motherName:
-                              fields['ΟΝΟΜΑ ΜΗΤΡΟΣ']!
-                                  .text
-                                  .trim(),
-                          birthDate: fields[
-                                  'ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ']!
-                              .text
-                              .trim(),
-                          birthPlace:
-                              fields['ΤΟΠΟΣ ΓΕΝΝΗΣΗΣ']!
-                                  .text
-                                  .trim(),
-                          nationality:
-                              fields['ΥΠΗΚΟΟΤΗΤΑ']!
-                                  .text
-                                  .trim(),
-                          address: fields[
-                                  'ΔΙΕΥΘΥΝΣΗ ΚΑΤΟΙΚΙΑΣ']!
-                              .text
-                              .trim(),
-                          mobile:
-                              fields['ΚΙΝΗΤΟ ΤΗΛΕΦΩΝΟ']!
-                                  .text
-                                  .trim(),
-                          maritalStatus: fields[
-                                  'ΟΙΚΟΓΕΝΕΙΑΚΗ ΚΑΤΑΣΤΑΣΗ']!
-                              .text
-                              .trim(),
-                          children:
-                              fields['ΑΡΙΘΜΟΣ ΠΑΙΔΙΩΝ']!
-                                  .text
-                                  .trim(),
-                          idNumber: fields[
-                                  'Α. ΔΕΛΤΙΟΥ ΤΑΥΤΟΤΗΤΑΣ']!
-                              .text
-                              .trim(),
-                          passport:
-                              fields['ΔΙΑΒΑΤΗΡΙΟ']!
-                                  .text
-                                  .trim(),
-                          issueDateAndAuthority: fields[
-                                  'ΗΜΕΡΟΜΗΝΙΑ ΕΚΔΟΣΗΣ ΚΑΙ ΑΡΧΗ']!
-                              .text
-                              .trim(),
-                          ama: fields[
-                                  'ΑΡΙΘΜΟΣ ΜΗΤΡΩΟΥ ΙΚΑ / ΑΜΑ']!
-                              .text
-                              .trim(),
-                          afm: fields['ΑΦΜ']!
-                              .text
-                              .trim(),
-                          doy: fields['ΔΟΥ']!
-                              .text
-                              .trim(),
-                          amka: fields['ΑΜΚΑ']!
-                              .text
-                              .trim(),
-                          contactPhone: fields[
-                                  'ΤΗΛΕΦΩΝΟ ΕΠΙΚΟΙΝΩΝΙΑΣ']!
-                              .text
-                              .trim(),
-                          email: fields['email']!
-                              .text
-                              .trim(),
-                          iban: fields['IBAN']!
-                              .text
-                              .trim(),
-                          bank: fields[
-                                  'Τράπεζα (όνομα τραπέζης)']!
-                              .text
-                              .trim(),
+                          surname: fields['ΕΠΩΝΥΜΟ']!.text.trim(),
+                          name: fields['ΟΝΟΜΑ']!.text.trim(),
+                          fatherSurname: fields['ΕΠΩΝΥΜΟ ΠΑΤΡΟΣ']!.text.trim(),
+                          fatherName: fields['ΟΝΟΜΑ ΠΑΤΡΟΣ']!.text.trim(),
+                          motherName: fields['ΟΝΟΜΑ ΜΗΤΡΟΣ']!.text.trim(),
+                          birthDate: fields['ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ']!.text.trim(),
+                          birthPlace: fields['ΤΟΠΟΣ ΓΕΝΝΗΣΗΣ']!.text.trim(),
+                          nationality: fields['ΥΠΗΚΟΟΤΗΤΑ']!.text.trim(),
+                          address: fields['ΔΙΕΥΘΥΝΣΗ ΚΑΤΟΙΚΙΑΣ']!.text.trim(),
+                          mobile: fields['ΚΙΝΗΤΟ ΤΗΛΕΦΩΝΟ']!.text.trim(),
+                          maritalStatus: fields['ΟΙΚΟΓΕΝΕΙΑΚΗ ΚΑΤΑΣΤΑΣΗ']!.text.trim(),
+                          children: fields['ΑΡΙΘΜΟΣ ΠΑΙΔΙΩΝ']!.text.trim(),
+                          idNumber: fields['Α. ΔΕΛΤΙΟΥ ΤΑΥΤΟΤΗΤΑΣ']!.text.trim(),
+                          passport: fields['ΔΙΑΒΑΤΗΡΙΟ']!.text.trim(),
+                          issueDateAndAuthority: fields['ΗΜΕΡΟΜΗΝΙΑ ΕΚΔΟΣΗΣ ΚΑΙ ΑΡΧΗ']!.text.trim(),
+                          ama: fields['ΑΡΙΘΜΟΣ ΜΗΤΡΩΟΥ ΙΚΑ / ΑΜΑ']!.text.trim(),
+                          afm: fields['ΑΦΜ']!.text.trim(),
+                          doy: fields['ΔΟΥ']!.text.trim(),
+                          amka: fields['ΑΜΚΑ']!.text.trim(),
+                          contactPhone: fields['ΤΗΛΕΦΩΝΟ ΕΠΙΚΟΙΝΩΝΙΑΣ']!.text.trim(),
+                          email: fields['email']!.text.trim(),
+                          iban: fields['IBAN']!.text.trim(),
+                          bank: fields['Τράπεζα (όνομα τραπέζης)']!.text.trim(),
                         );
 
-                        setState(() {
-                          AppStore.members.add(member);
+                        AppStore.saveMember(member, isNew: true).then((_) {
+                          if (mounted) setState(() {});
                         });
-                        AppStore.log(
-                          'Members',
-                          'Προστέθηκε μέλος: '
-                          '${member.fullName}',
-                        );
+
                         Navigator.pop(context);
                       },
                       child: const Text('Αποθήκευση μέλους'),
@@ -421,8 +331,7 @@ class _MembersScreenState extends State<MembersScreen> {
   }
 
   TextInputType _keyboardFor(String field) {
-    if (field.contains('ΤΗΛΕΦΩΝΟ') ||
-        field == 'ΑΡΙΘΜΟΣ ΠΑΙΔΙΩΝ') {
+    if (field.contains('ΤΗΛΕΦΩΝΟ') || field == 'ΑΡΙΘΜΟΣ ΠΑΙΔΙΩΝ') {
       return TextInputType.phone;
     }
     if (field == 'email') {
@@ -431,40 +340,50 @@ class _MembersScreenState extends State<MembersScreen> {
     return TextInputType.text;
   }
 
-  void _showMember(MemberProfile member) {
+  Future<void> _showMember(MemberProfile member) async {
+    final full = AppStore.can('membersSensitive', 'read');
+    if (full && !member.sensitiveLoaded) {
+      await AppStore.loadMemberSensitive(member);
+    }
+    if (!mounted) return;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (context) {
-        final values = <String, String>{
-          'ΡΟΛΟΣ': memberRoleLabel(member.role),
-          'ΕΠΩΝΥΜΟ': member.surname,
-          'ΟΝΟΜΑ': member.name,
-          'ΕΠΩΝΥΜΟ ΠΑΤΡΟΣ': member.fatherSurname,
-          'ΟΝΟΜΑ ΠΑΤΡΟΣ': member.fatherName,
-          'ΟΝΟΜΑ ΜΗΤΡΟΣ': member.motherName,
-          'ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ': member.birthDate,
-          'ΤΟΠΟΣ ΓΕΝΝΗΣΗΣ': member.birthPlace,
-          'ΥΠΗΚΟΟΤΗΤΑ': member.nationality,
-          'ΔΙΕΥΘΥΝΣΗ ΚΑΤΟΙΚΙΑΣ': member.address,
-          'ΚΙΝΗΤΟ ΤΗΛΕΦΩΝΟ': member.mobile,
-          'ΟΙΚΟΓΕΝΕΙΑΚΗ ΚΑΤΑΣΤΑΣΗ':
-              member.maritalStatus,
-          'ΑΡΙΘΜΟΣ ΠΑΙΔΙΩΝ': member.children,
-          'Α. ΔΕΛΤΙΟΥ ΤΑΥΤΟΤΗΤΑΣ': member.idNumber,
-          'ΔΙΑΒΑΤΗΡΙΟ': member.passport,
-          'ΗΜΕΡΟΜΗΝΙΑ ΕΚΔΟΣΗΣ ΚΑΙ ΑΡΧΗ':
-              member.issueDateAndAuthority,
-          'ΑΡΙΘΜΟΣ ΜΗΤΡΩΟΥ ΙΚΑ / ΑΜΑ': member.ama,
-          'ΑΦΜ': member.afm,
-          'ΔΟΥ': member.doy,
-          'ΑΜΚΑ': member.amka,
-          'ΤΗΛΕΦΩΝΟ ΕΠΙΚΟΙΝΩΝΙΑΣ':
-              member.contactPhone,
-          'email': member.email,
-          'IBAN': member.iban,
-          'Τράπεζα (όνομα τραπέζης)': member.bank,
-        };
+        final values = !full
+            ? <String, String>{
+                'ΡΟΛΟΣ': memberRoleLabel(member.role),
+                'ΕΠΩΝΥΜΟ': member.surname,
+                'ΟΝΟΜΑ': member.name,
+                'ΚΙΝΗΤΟ ΤΗΛΕΦΩΝΟ': member.mobile,
+                'email': member.email,
+              }
+            : <String, String>{
+                'ΡΟΛΟΣ': memberRoleLabel(member.role),
+                'ΕΠΩΝΥΜΟ': member.surname,
+                'ΟΝΟΜΑ': member.name,
+                'ΕΠΩΝΥΜΟ ΠΑΤΡΟΣ': member.fatherSurname,
+                'ΟΝΟΜΑ ΠΑΤΡΟΣ': member.fatherName,
+                'ΟΝΟΜΑ ΜΗΤΡΟΣ': member.motherName,
+                'ΗΜΕΡΟΜΗΝΙΑ ΓΕΝΝΗΣΗΣ': member.birthDate,
+                'ΤΟΠΟΣ ΓΕΝΝΗΣΗΣ': member.birthPlace,
+                'ΥΠΗΚΟΟΤΗΤΑ': member.nationality,
+                'ΔΙΕΥΘΥΝΣΗ ΚΑΤΟΙΚΙΑΣ': member.address,
+                'ΚΙΝΗΤΟ ΤΗΛΕΦΩΝΟ': member.mobile,
+                'ΟΙΚΟΓΕΝΕΙΑΚΗ ΚΑΤΑΣΤΑΣΗ': member.maritalStatus,
+                'ΑΡΙΘΜΟΣ ΠΑΙΔΙΩΝ': member.children,
+                'Α. ΔΕΛΤΙΟΥ ΤΑΥΤΟΤΗΤΑΣ': member.idNumber,
+                'ΔΙΑΒΑΤΗΡΙΟ': member.passport,
+                'ΗΜΕΡΟΜΗΝΙΑ ΕΚΔΟΣΗΣ ΚΑΙ ΑΡΧΗ': member.issueDateAndAuthority,
+                'ΑΡΙΘΜΟΣ ΜΗΤΡΩΟΥ ΙΚΑ / ΑΜΑ': member.ama,
+                'ΑΦΜ': member.afm,
+                'ΔΟΥ': member.doy,
+                'ΑΜΚΑ': member.amka,
+                'ΤΗΛΕΦΩΝΟ ΕΠΙΚΟΙΝΩΝΙΑΣ': member.contactPhone,
+                'email': member.email,
+                'IBAN': member.iban,
+                'Τράπεζα (όνομα τραπέζης)': member.bank,
+              };
 
         return DraggableScrollableSheet(
           expand: false,
@@ -502,13 +421,14 @@ class _MembersScreenState extends State<MembersScreen> {
   }
 
   Future<void> _exportSelectedMembers() async {
-    final selectedMembers = AppStore.members
-        .where((member) =>
-            selectedMemberIds.contains(member.id))
-        .toList();
+    final selectedMembers = AppStore.members.where((member) => selectedMemberIds.contains(member.id)).toList();
 
     if (selectedMembers.isEmpty) {
       return;
+    }
+    // Sensitive fields come from the server one member at a time; each read is audited there.
+    for (final m in selectedMembers) {
+      if (!m.sensitiveLoaded && !await AppStore.loadMemberSensitive(m)) return;
     }
 
     final excel = Excel.createExcel();
@@ -588,16 +508,13 @@ class _MembersScreenState extends State<MembersScreen> {
     }
 
     final renderBox = context.findRenderObject() as RenderBox?;
-    final shareOrigin = renderBox == null
-        ? const Rect.fromLTWH(1, 1, 1, 1)
-        : renderBox.localToGlobal(Offset.zero) & renderBox.size;
+    final shareOrigin =
+        renderBox == null ? const Rect.fromLTWH(1, 1, 1, 1) : renderBox.localToGlobal(Offset.zero) & renderBox.size;
 
     await saveAndShareFile(
       bytes: Uint8List.fromList(bytes),
-      fileName:
-          'TBN_Αποστολή_${DateTime.now().millisecondsSinceEpoch}.xlsx',
-      mimeType:
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      fileName: 'TBN_Αποστολή_${DateTime.now().millisecondsSinceEpoch}.xlsx',
+      mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       subject: 'TBN αποστολή',
       text: 'Επιλεγμένα μέλη αποστολής (${selectedMembers.length})',
       shareOrigin: shareOrigin,

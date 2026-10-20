@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'money.dart';
+
 import 'models.dart';
 import 'theme.dart';
 
@@ -81,11 +83,10 @@ const _monthsShort = <String>[
 String greekDateLong(DateTime d) =>
     '${_weekdays[d.weekday - 1]} ${d.day} ${_monthsGenitive[d.month - 1]}';
 
-String formatEuro(double v) {
-  if (v == v.roundToDouble()) {
-    return '${v.toInt()} €';
-  }
-  return '${v.toStringAsFixed(2)} €';
+/// Compact amount from cents: "20 €", "20,50 €", "1.250 €".
+String formatEuro(int cents) {
+  final full = formatCents(cents);
+  return cents % 100 == 0 ? full.replaceFirst(',00', '') : full;
 }
 
 /// Σύντομη ονομασία ομάδας (λίστα φίλτρων).

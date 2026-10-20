@@ -4,6 +4,7 @@ import '../core/models.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../data/app_store.dart';
+import 'calendar_feed_sheet.dart';
 import 'live_detail_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -32,9 +33,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget build(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final selectedEvents = AppStore.calendarWithLives().where((e) {
-      return _sameDay(e.dateTime, selected);
+      return _sameDay(e.startsAt, selected);
     }).toList()
-      ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
 
     return SafeArea(
       bottom: false,
@@ -45,14 +46,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
             title: 'Ημερολόγιο',
             subtitle: '${AppStore.calendarWithLives().length} events',
             actions: [
-              FilledButton.icon(
-                onPressed: _addRehearsal,
-                icon: const Icon(Icons.add_rounded, size: 20),
-                label: const Text('Πρόβα'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(0, 42),
-                ),
+              IconButton(
+                tooltip: 'Συγχρονισμός με το ημερολόγιό μου',
+                onPressed: () => showCalendarFeedSheet(context),
+                icon: const Icon(Icons.sync_rounded),
               ),
+              if (AppStore.can('calendar', 'write'))
+                FilledButton.icon(
+                  onPressed: _addRehearsal,
+                  icon: const Icon(Icons.add_rounded, size: 20),
+                  label: const Text('Νέο'),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 42),
+                  ),
+                ),
             ],
           ),
           SizedBox(
@@ -112,9 +119,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
             ),
           ...selectedEvents.map((event) {
-            final time =
-                '${event.dateTime.hour.toString().padLeft(2, '0')}:'
-                '${event.dateTime.minute.toString().padLeft(2, '0')}';
+            final time = '${event.startsAt.hour.toString().padLeft(2, '0')}:'
+                '${event.startsAt.minute.toString().padLeft(2, '0')}';
             return Card(
               clipBehavior: Clip.antiAlias,
               child: InkWell(
@@ -124,9 +130,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   child: Row(
                     children: [
                       IconChip(
-                        icon: event.type == 'Live'
-                            ? Icons.mic_external_on_rounded
-                            : Icons.music_note_rounded,
+                        icon: event.type == 'Live' ? Icons.mic_external_on_rounded : Icons.music_note_rounded,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -136,9 +140,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             Text(event.title, style: t.titleSmall),
                             const SizedBox(height: 2),
                             Text(
-                              event.location.isEmpty
-                                  ? 'Χωρίς τοποθεσία'
-                                  : event.location,
+                              event.location.isEmpty ? 'Χωρίς τοποθεσία' : event.location,
                               style: t.bodySmall,
                             ),
                           ],
@@ -166,15 +168,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
       if (matches.isEmpty) return;
       Navigator.of(context)
           .push(
-            TbnPageRoute<void>(
-              builder: (_) => LiveDetailScreen(live: matches.first),
-            ),
-          )
+        TbnPageRoute<void>(
+          builder: (_) => LiveDetailScreen(live: matches.first),
+        ),
+      )
           .then((_) {
         if (mounted) setState(() {});
       });
       return;
     }
+    if (!AppStore.can('calendar', 'write')) return;
     _editEvent(event);
   }
 
@@ -204,7 +207,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   Widget _dayCell(DateTime date, {double margin = 3}) {
     final hasEvent = AppStore.calendarWithLives().any((e) {
-      return _sameDay(e.dateTime, date);
+      return _sameDay(e.startsAt, date);
     });
     final isSelected = _sameDay(selected, date);
     final isToday = _sameDay(DateTime.now(), date);
@@ -222,9 +225,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isSelected ? TbnColors.accent : null,
-          border: isToday && !isSelected
-              ? Border.all(color: TbnColors.accent, width: 1.5)
-              : null,
+          border: isToday && !isSelected ? Border.all(color: TbnColors.accent, width: 1.5) : null,
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -232,8 +233,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             Text(
               '${date.day}',
               style: TextStyle(
-                fontWeight:
-                    isSelected || isToday ? FontWeight.w700 : FontWeight.w500,
+                fontWeight: isSelected || isToday ? FontWeight.w700 : FontWeight.w500,
                 color: isSelected ? Colors.white : onSurface,
               ),
             ),
@@ -296,7 +296,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _dayView() {
     final t = Theme.of(context).textTheme;
     final count = AppStore.calendarWithLives().where((e) {
-      return _sameDay(e.dateTime, selected);
+      return _sameDay(e.startsAt, selected);
     }).length;
 
     return Padding(
@@ -315,8 +315,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   void _addRehearsal() {
+    final title = TextEditingController(text: 'Πρόβα');
     final location = TextEditingController(text: 'Studio');
     final notes = TextEditingController();
+    var isPrivate = false;
     DateTime dateTime = DateTime.now().add(const Duration(days: 1));
 
     showModalBottomSheet<void>(
@@ -336,7 +338,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 shrinkWrap: true,
                 children: [
                   const Text(
-                    'Προσθήκη πρόβας',
+                    'Νέα εκδήλωση',
                     style: TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
@@ -344,6 +346,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  TextField(
+                    controller: title,
+                    decoration: const InputDecoration(labelText: 'Τίτλος'),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Ιδιωτικό'),
+                    subtitle: const Text('Το βλέπεις μόνο εσύ (π.χ. για να δείξεις ότι δεν είσαι διαθέσιμος).'),
+                    value: isPrivate,
+                    onChanged: (v) => modalSetState(() => isPrivate = v),
+                  ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     title: const Text('Ημερομηνία'),
@@ -413,20 +426,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   FilledButton(
                     onPressed: () {
                       final event = CalendarItem(
-                        id: DateTime.now()
-                            .microsecondsSinceEpoch
-                            .toString(),
-                        dateTime: dateTime,
-                        title: 'Πρόβα',
-                        type: 'Rehearsal',
+                        id: newId(),
+                        startsAt: dateTime,
+                        title: title.text.trim().isEmpty ? 'Πρόβα' : title.text.trim(),
+                        type: isPrivate ? 'Personal' : 'Rehearsal',
                         location: location.text.trim(),
                         notes: notes.text.trim(),
+                        visibility: isPrivate ? CalendarVisibility.private : CalendarVisibility.team,
                       );
-                      AppStore.calendar.add(event);
-                      AppStore.log(
-                        'Calendar',
-                        'Προστέθηκε νέα πρόβα',
-                      );
+                      AppStore.create(event);
+
                       setState(() {
                         selected = DateTime(
                           dateTime.year,
@@ -437,7 +446,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       });
                       Navigator.pop(context);
                     },
-                    child: const Text('Αποθήκευση πρόβας'),
+                    child: const Text('Αποθήκευση'),
                   ),
                 ],
               ),
@@ -452,7 +461,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final title = TextEditingController(text: event.title);
     final location = TextEditingController(text: event.location);
     final notes = TextEditingController(text: event.notes);
-    DateTime dateTime = event.dateTime;
+    DateTime dateTime = event.startsAt;
 
     showModalBottomSheet<void>(
       context: context,
@@ -549,7 +558,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         event.title = title.text.trim();
                         event.location = location.text.trim();
                         event.notes = notes.text.trim();
-                        event.dateTime = dateTime;
+                        event.startsAt = dateTime;
                         selected = DateTime(
                           dateTime.year,
                           dateTime.month,
@@ -557,14 +566,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                         );
                         focused = selected;
                       });
-                      AppStore.log(
-                        'Calendar',
-                        'Ενημερώθηκε event: ${event.title}',
-                      );
+                      AppStore.update(event);
+
                       Navigator.pop(context);
                     },
                     child: const Text('Αποθήκευση αλλαγών'),
                   ),
+                  if (event.ownerId == AppStore.me.value?.id || AppStore.can('calendar', 'delete'))
+                    TextButton(
+                      onPressed: () {
+                        AppStore.remove(event);
+                        setState(() {});
+                        Navigator.pop(context);
+                      },
+                      style: TextButton.styleFrom(foregroundColor: TbnColors.danger),
+                      child: const Text('Διαγραφή'),
+                    ),
                 ],
               ),
             );
@@ -575,9 +592,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   bool _sameDay(DateTime a, DateTime b) {
-    return a.year == b.year &&
-        a.month == b.month &&
-        a.day == b.day;
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   String _header() {

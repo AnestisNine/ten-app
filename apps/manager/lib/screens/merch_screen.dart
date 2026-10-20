@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../core/image_utils.dart';
 import '../core/models.dart';
+import '../core/money.dart';
 import '../core/theme.dart';
 import '../data/app_store.dart';
 import 'order_detail_screen.dart';
@@ -36,7 +37,8 @@ class _MerchScreenState extends State<MerchScreen> {
             subtitle: '${AppStore.products.length} προϊόντα · '
                 '${AppStore.orders.length} παραγγελίες',
             actions: [
-              if (tab == 1 || tab == 2)
+              if ((tab == 1 && AppStore.can('orders', 'write') && AppStore.can('customers', 'read')) ||
+                  (tab == 2 && AppStore.can('merch', 'write')))
                 FilledButton.icon(
                   onPressed: tab == 1 ? _addOrganicOrder : _addProduct,
                   icon: const Icon(Icons.add_rounded, size: 20),
@@ -51,7 +53,7 @@ class _MerchScreenState extends State<MerchScreen> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                for (var i = 0; i < _tabs.length; i++)
+                for (var i = 0; i < (AppStore.can('customers', 'read') ? _tabs.length : 3); i++)
                   Padding(
                     padding: EdgeInsets.only(right: i == 3 ? 0 : 8),
                     child: ChoiceChip(
@@ -127,14 +129,12 @@ class _MerchScreenState extends State<MerchScreen> {
         title: 'Δεν υπάρχουν παραγγελίες',
       );
     }
-    final sorted = [...AppStore.orders]
-      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    final sorted = [...AppStore.orders]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
     return Column(
       children: sorted.map((order) {
         final product = AppStore.productById(order.productId);
-        final total =
-            (product.salePrice * order.quantity) + order.shippingCost;
+        final total = ((product?.salePriceCents ?? 0) * order.quantity) + order.shippingCostCents;
         final color = orderStatusColor(order.status);
 
         return Card(
@@ -156,9 +156,7 @@ class _MerchScreenState extends State<MerchScreen> {
               child: Row(
                 children: [
                   IconChip(
-                    icon: order.source == OrderSource.bandcamp
-                        ? Icons.album_outlined
-                        : Icons.shopping_bag_outlined,
+                    icon: order.source == OrderSource.bandcamp ? Icons.album_outlined : Icons.shopping_bag_outlined,
                     color: color,
                   ),
                   const SizedBox(width: 12),
@@ -167,14 +165,14 @@ class _MerchScreenState extends State<MerchScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${product.name} × ${order.quantity}',
+                          '${product?.name ?? '—'} × ${order.quantity}',
                           style: t.titleSmall,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          '${order.id} · '
+                          '${order.label} · '
                           '${orderSourceLabel(order.source)}',
                           style: t.bodySmall,
                           maxLines: 1,
@@ -214,7 +212,7 @@ class _MerchScreenState extends State<MerchScreen> {
     }
     return Column(
       children: AppStore.products.map((product) {
-        final margin = product.salePrice - product.unitCost;
+        final margin = product.salePriceCents - product.unitCostCents;
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -229,14 +227,14 @@ class _MerchScreenState extends State<MerchScreen> {
                       Text(product.name, style: t.titleSmall),
                       const SizedBox(height: 2),
                       Text(
-                        'Κόστος ${formatEuro(product.unitCost)}'
+                        'Κόστος ${formatEuro(product.unitCostCents)}'
                         ' · κέρδος ${formatEuro(margin)}',
                         style: t.bodySmall,
                       ),
                     ],
                   ),
                 ),
-                Text(formatEuro(product.salePrice), style: t.titleMedium),
+                Text(formatEuro(product.salePriceCents), style: t.titleMedium),
               ],
             ),
           ),
@@ -257,9 +255,7 @@ class _MerchScreenState extends State<MerchScreen> {
       children: AppStore.customers.map((customer) {
         final name = customer.fullName.trim();
         final initial = name.isEmpty ? '?' : name[0].toUpperCase();
-        final contact = [customer.email, customer.phone]
-            .where((e) => e.isNotEmpty)
-            .join(' · ');
+        final contact = [customer.email, customer.phone].where((e) => e.isNotEmpty).join(' · ');
         return Card(
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -267,8 +263,7 @@ class _MerchScreenState extends State<MerchScreen> {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor:
-                      TbnColors.accent.withValues(alpha: 0.15),
+                  backgroundColor: TbnColors.accent.withValues(alpha: 0.15),
                   foregroundColor: TbnColors.accent,
                   child: Text(
                     initial,
@@ -307,7 +302,7 @@ class _MerchScreenState extends State<MerchScreen> {
   }
 
   Widget _thumbnail(ProductItem product) {
-    final provider = imageProviderFromRef(product.imagePath);
+    final provider = imageProviderFromRef(product.imageUrl);
 
     if (provider != null) {
       return ClipRRect(
@@ -325,20 +320,16 @@ class _MerchScreenState extends State<MerchScreen> {
   }
 
   void _addOrganicOrder() {
-    if (AppStore.customers.isEmpty ||
-        AppStore.products.isEmpty) {
+    if (AppStore.customers.isEmpty || AppStore.products.isEmpty) {
       return;
     }
 
     CustomerItem customer = AppStore.customers.first;
     ProductItem product = AppStore.products.first;
-    ShippingMethod shippingMethod =
-        ShippingMethod.boxNow;
+    ShippingMethod shippingMethod = ShippingMethod.boxNow;
     OrderContext orderContext = OrderContext.outsideLive;
-    final quantity =
-        TextEditingController(text: '1');
-    final shippingCost =
-        TextEditingController(text: '0');
+    final quantity = TextEditingController(text: '1');
+    final shippingCost = TextEditingController(text: '0');
     final notes = TextEditingController();
 
     showModalBottomSheet<void>(
@@ -352,9 +343,7 @@ class _MerchScreenState extends State<MerchScreen> {
                 left: 20,
                 right: 20,
                 top: 20,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom +
-                        24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: ListView(
                 shrinkWrap: true,
@@ -375,8 +364,7 @@ class _MerchScreenState extends State<MerchScreen> {
                     ),
                     items: AppStore.customers
                         .map(
-                          (item) =>
-                              DropdownMenuItem<CustomerItem>(
+                          (item) => DropdownMenuItem<CustomerItem>(
                             value: item,
                             child: Text(item.fullName),
                           ),
@@ -398,8 +386,7 @@ class _MerchScreenState extends State<MerchScreen> {
                     ),
                     items: AppStore.products
                         .map(
-                          (item) =>
-                              DropdownMenuItem<ProductItem>(
+                          (item) => DropdownMenuItem<ProductItem>(
                             value: item,
                             child: Text(item.name),
                           ),
@@ -424,8 +411,7 @@ class _MerchScreenState extends State<MerchScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: shippingCost,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(
+                    keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     decoration: const InputDecoration(
@@ -440,8 +426,7 @@ class _MerchScreenState extends State<MerchScreen> {
                     ),
                     items: ShippingMethod.values
                         .map(
-                          (method) =>
-                              DropdownMenuItem<ShippingMethod>(
+                          (method) => DropdownMenuItem<ShippingMethod>(
                             value: method,
                             child: Text(
                               shippingMethodLabel(method),
@@ -492,43 +477,29 @@ class _MerchScreenState extends State<MerchScreen> {
                   const SizedBox(height: 14),
                   FilledButton(
                     onPressed: () {
-                      final qty =
-                          int.tryParse(quantity.text);
-                      final shipping = double.tryParse(
-                        shippingCost.text
-                            .replaceAll(',', '.'),
-                      );
+                      final qty = int.tryParse(quantity.text);
+                      final shipping = parseCents(shippingCost.text);
 
-                      if (qty == null ||
-                          qty <= 0 ||
-                          shipping == null) {
+                      if (qty == null || qty <= 0 || shipping == null) {
                         return;
                       }
 
                       final order = OrderItem(
-                        id:
-                            'Order #${1000 + AppStore.orders.length + 1}',
+                        id: newId(),
                         customerId: customer.id,
                         productId: product.id,
                         quantity: qty,
-                        shippingCost: shipping,
+                        shippingCostCents: shipping,
                         shippingMethod: shippingMethod,
-                        status:
-                            OrderStatus.waitingContact,
+                        status: OrderStatus.waitingContact,
                         source: OrderSource.organic,
                         createdAt: DateTime.now(),
                         context: orderContext,
                         notes: notes.text.trim(),
                       );
 
-                      setState(() {
-                        AppStore.orders.add(order);
-                      });
+                      AppStore.create(order);
 
-                      AppStore.log(
-                        'Orders',
-                        'Προστέθηκε organic ${order.id}',
-                      );
                       Navigator.pop(context);
                     },
                     child: const Text(
@@ -550,6 +521,7 @@ class _MerchScreenState extends State<MerchScreen> {
     final salePrice = TextEditingController();
     final initialStock = TextEditingController(text: '0');
     String? imagePath;
+    List<int>? imageBytes;
 
     showModalBottomSheet<void>(
       context: context,
@@ -562,9 +534,7 @@ class _MerchScreenState extends State<MerchScreen> {
                 left: 20,
                 right: 20,
                 top: 20,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom +
-                        24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
               ),
               child: ListView(
                 shrinkWrap: true,
@@ -581,8 +551,7 @@ class _MerchScreenState extends State<MerchScreen> {
                   Center(
                     child: GestureDetector(
                       onTap: () async {
-                        final image =
-                            await _imagePicker.pickImage(
+                        final image = await _imagePicker.pickImage(
                           source: ImageSource.gallery,
                           maxWidth: 480,
                           maxHeight: 480,
@@ -592,8 +561,8 @@ class _MerchScreenState extends State<MerchScreen> {
                         if (image != null) {
                           final bytes = await image.readAsBytes();
                           modalSetState(() {
-                            imagePath =
-                                'data:image/jpeg;base64,'
+                            imageBytes = bytes;
+                            imagePath = 'data:image/jpeg;base64,'
                                 '${base64Encode(bytes)}';
                           });
                         }
@@ -603,8 +572,7 @@ class _MerchScreenState extends State<MerchScreen> {
                         height: 100,
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                          borderRadius:
-                              BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         child: imageProviderFromRef(imagePath) == null
                             ? const Icon(
@@ -612,11 +580,9 @@ class _MerchScreenState extends State<MerchScreen> {
                                 size: 34,
                               )
                             : ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(16),
                                 child: Image(
-                                  image:
-                                      imageProviderFromRef(imagePath)!,
+                                  image: imageProviderFromRef(imagePath)!,
                                   fit: BoxFit.cover,
                                 ),
                               ),
@@ -633,8 +599,7 @@ class _MerchScreenState extends State<MerchScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: unitCost,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(
+                    keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     decoration: const InputDecoration(
@@ -644,8 +609,7 @@ class _MerchScreenState extends State<MerchScreen> {
                   const SizedBox(height: 10),
                   TextField(
                     controller: salePrice,
-                    keyboardType:
-                        const TextInputType.numberWithOptions(
+                    keyboardType: const TextInputType.numberWithOptions(
                       decimal: true,
                     ),
                     decoration: const InputDecoration(
@@ -663,43 +627,28 @@ class _MerchScreenState extends State<MerchScreen> {
                   const SizedBox(height: 14),
                   FilledButton(
                     onPressed: () {
-                      final cost = double.tryParse(
-                        unitCost.text.replaceAll(',', '.'),
-                      );
-                      final price = double.tryParse(
-                        salePrice.text.replaceAll(',', '.'),
-                      );
-                      final stock =
-                          int.tryParse(initialStock.text);
+                      final cost = parseCents(unitCost.text);
+                      final price = parseCents(salePrice.text);
+                      final stock = int.tryParse(initialStock.text);
 
-                      if (name.text.trim().isEmpty ||
-                          cost == null ||
-                          price == null ||
-                          stock == null ||
-                          stock < 0) {
+                      if (name.text.trim().isEmpty || cost == null || price == null || stock == null || stock < 0) {
                         return;
                       }
 
                       final product = ProductItem(
-                        id: DateTime.now()
-                            .microsecondsSinceEpoch
-                            .toString(),
+                        id: newId(),
                         name: name.text.trim(),
                         stock: stock,
-                        unitCost: cost,
-                        salePrice: price,
-                        imagePath: imagePath,
+                        unitCostCents: cost,
+                        salePriceCents: price,
                       );
-
-                      setState(() {
-                        AppStore.products.add(product);
+                      final bytes = imageBytes;
+                      AppStore.create(product).then((ok) {
+                        if (ok && bytes != null) {
+                          AppStore.uploadProductImage(product, bytes, 'product.jpg');
+                        }
                       });
 
-                      AppStore.log(
-                        'Products',
-                        'Προστέθηκε νέο προϊόν: '
-                        '${product.name}',
-                      );
                       Navigator.pop(context);
                     },
                     child: const Text(

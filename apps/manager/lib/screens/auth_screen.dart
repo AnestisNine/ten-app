@@ -1,10 +1,100 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../api/api_client.dart';
 import '../core/app_info.dart';
 import '../core/theme.dart';
+import '../data/app_store.dart';
+import '../l10n/app_localizations.dart';
 import '../security/app_lock_service.dart';
 import 'main_shell.dart';
+import 'two_factor_screen.dart';
+
+/// After a successful sign-in (or on start with a valid session): enforce 2FA enrollment for roles
+/// that need it, unlock with Face ID / Touch ID on native devices, load the data, open the app.
+Future<void> enterApp(BuildContext context) async {
+  final navigator = Navigator.of(context);
+  final me = await AppStore.loadMe();
+  if (me == null) {
+    navigator.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const AuthScreen()), (_) => false);
+    return;
+  }
+  if (me.needsTwoFactorSetup) {
+    navigator.pushAndRemoveUntil(
+      MaterialPageRoute<void>(builder: (_) => const TwoFactorSetupScreen(required: true)),
+      (_) => false,
+    );
+    return;
+  }
+  if (!await AppLockService.authenticate()) return;
+  await AppStore.loadAll();
+  navigator.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const MainShell()), (_) => false);
+}
+
+Future<void> signOutAndReturnToLogin(BuildContext context) async {
+  final navigator = Navigator.of(context, rootNavigator: true);
+  await AppStore.signOut();
+  navigator.pushAndRemoveUntil(MaterialPageRoute<void>(builder: (_) => const AuthScreen()), (_) => false);
+}
+
+/// First screen: restores an existing session, otherwise shows the sign-in form.
+class StartupScreen extends StatefulWidget {
+  const StartupScreen({super.key});
+
+  @override
+  State<StartupScreen> createState() => _StartupScreenState();
+}
+
+class _StartupScreenState extends State<StartupScreen> {
+  String? error;
+
+  @override
+  void initState() {
+    super.initState();
+    _start();
+  }
+
+  Future<void> _start() async {
+    setState(() => error = null);
+    if (AppStore.api.needsServerUrl) return _toLogin();
+    try {
+      final me = await AppStore.loadMe();
+      if (!mounted) return;
+      if (me == null) return _toLogin();
+      await enterApp(context);
+    } on ApiException catch (e) {
+      if (mounted) setState(() => error = e.message);
+    }
+  }
+
+  void _toLogin() {
+    Navigator.of(context).pushReplacement(MaterialPageRoute<void>(builder: (_) => const AuthScreen()));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const TbnLogoMark(size: 110),
+            const SizedBox(height: 24),
+            if (error == null)
+              const CircularProgressIndicator()
+            else ...[
+              Text(l.offline),
+              const SizedBox(height: 12),
+              FilledButton(onPressed: _start, child: Text(l.retry)),
+              TextButton(onPressed: _toLogin, child: Text(l.server)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -14,24 +104,83 @@ class AuthScreen extends StatefulWidget {
 }
 
 class _AuthScreenState extends State<AuthScreen> {
-  bool signUp = false;
+  final email = TextEditingController();
+  final password = TextEditingController();
+  final code = TextEditingController();
+  final server = TextEditingController(text: AppStore.api.baseUrl);
+  bool needCode = false;
+  bool backupCode = false;
+  bool trustDevice = false;
+  bool busy = false;
+  String? message;
 
-  Future<void> _submit() async {
-    final allowed = await AppLockService.authenticate();
-
-    if (!mounted || !allowed) {
-      return;
+  @override
+  void dispose() {
+    for (final c in [email, password, code, server]) {
+      c.dispose();
     }
-
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const MainShell()),
-    );
+    super.dispose();
   }
+
+  Future<void> _run(Future<void> Function() action) async {
+    setState(() {
+      busy = true;
+      message = null;
+    });
+    try {
+      await action();
+    } on ApiException catch (e) {
+      if (mounted) setState(() => message = _messageFor(e));
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  String _messageFor(ApiException e) {
+    final l = AppLocalizations.of(context);
+    if (e.isOffline) return l.offline;
+    if (e.status == 429) return l.tooManyAttempts;
+    if (needCode) return l.wrongCode;
+    if (e.status == 401 || e.status == 400) return l.invalidCredentials;
+    return e.message;
+  }
+
+  Future<void> _signIn() => _run(() async {
+        if (!kIsWeb) await AppStore.api.setServerUrl(server.text);
+        final res = await AppStore.api.post('/api/auth/sign-in/email', {
+          'email': email.text.trim(),
+          'password': password.text,
+        }) as Map<String, dynamic>?;
+        password.clear();
+        if (res?['twoFactorRedirect'] == true) {
+          setState(() => needCode = true);
+          return;
+        }
+        if (mounted) await enterApp(context);
+      });
+
+  Future<void> _verify() => _run(() async {
+        final path = backupCode ? '/api/auth/two-factor/verify-backup-code' : '/api/auth/two-factor/verify-totp';
+        await AppStore.api.post(path, {'code': code.text.trim(), 'trustDevice': trustDevice});
+        if (mounted) await enterApp(context);
+      });
+
+  Future<void> _forgot() => _run(() async {
+        final l = AppLocalizations.of(context);
+        if (email.text.trim().isEmpty) {
+          setState(() => message = l.enterEmailFirst);
+          return;
+        }
+        if (!kIsWeb) await AppStore.api.setServerUrl(server.text);
+        await AppStore.api.post('/api/auth/request-password-reset', {'email': email.text.trim()});
+        setState(() => message = l.resetSent);
+      });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final t = theme.textTheme;
+    final l = AppLocalizations.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
     final isDark = theme.brightness == Brightness.dark;
 
@@ -53,124 +202,109 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 400),
-                    child: ListView(
-                      shrinkWrap: true,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 28,
-                        vertical: 24,
-                      ),
-                      children: [
-                        TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: 1),
-                          duration: const Duration(milliseconds: 700),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, v, child) => Opacity(
-                            opacity: v,
-                            child: Transform.translate(
-                              offset: Offset(0, (1 - v) * 12),
-                              child: child,
-                            ),
+                    child: AutofillGroup(
+                      child: ListView(
+                        shrinkWrap: true,
+                        padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                        children: [
+                          const TbnLogoMark(size: 150),
+                          const SizedBox(height: 18),
+                          Text(
+                            'TBN MANAGER',
+                            textAlign: TextAlign.center,
+                            style: t.headlineSmall?.copyWith(letterSpacing: 4, fontWeight: FontWeight.w600),
                           ),
-                          child: Column(
-                            children: [
-                              const TbnLogoMark(size: 150),
-                              const SizedBox(height: 18),
-                              Text(
-                                'TBN MANAGER',
-                                textAlign: TextAlign.center,
-                                style: t.headlineSmall?.copyWith(
-                                  letterSpacing: 4,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                          const SizedBox(height: 8),
+                          Text(
+                            l.appTagline,
+                            textAlign: TextAlign.center,
+                            style: t.labelSmall?.copyWith(letterSpacing: 2.2, color: muted),
+                          ),
+                          const SizedBox(height: 40),
+                          if (!needCode) ...[
+                            if (!kIsWeb) ...[
+                              TextField(
+                                controller: server,
+                                keyboardType: TextInputType.url,
+                                decoration: InputDecoration(labelText: l.server, hintText: l.serverHint),
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'TOURING  ·  MERCH  ·  FINANCE',
-                                textAlign: TextAlign.center,
-                                style: t.labelSmall?.copyWith(
-                                  letterSpacing: 2.2,
-                                  color: muted,
-                                ),
-                              ),
+                              const SizedBox(height: 12),
                             ],
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        Row(
-                          children: [
-                            _TabLabel(
-                              label: 'Log in',
-                              selected: !signUp,
-                              onTap: () => setState(() => signUp = false),
+                            TextField(
+                              controller: email,
+                              keyboardType: TextInputType.emailAddress,
+                              autofillHints: const [AutofillHints.email, AutofillHints.username],
+                              decoration: InputDecoration(labelText: l.email),
                             ),
-                            const SizedBox(width: 24),
-                            _TabLabel(
-                              label: 'Sign up',
-                              selected: signUp,
-                              onTap: () => setState(() => signUp = true),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: password,
+                              obscureText: true,
+                              autofillHints: const [AutofillHints.password],
+                              onSubmitted: (_) => busy ? null : _signIn(),
+                              decoration: InputDecoration(labelText: l.password),
+                            ),
+                            const SizedBox(height: 20),
+                            FilledButton(
+                              onPressed: busy ? null : _signIn,
+                              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                              child: busy
+                                  ? const SizedBox.square(
+                                      dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : Text(l.signIn),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.only(top: 4),
+                              child: TextButton(
+                                onPressed: busy ? null : _forgot,
+                                style: TextButton.styleFrom(foregroundColor: muted),
+                                child: Text(l.forgotPassword),
+                              ),
+                            ),
+                          ] else ...[
+                            Text(l.twoFactorCodeTitle, style: t.titleMedium),
+                            const SizedBox(height: 6),
+                            Text(l.twoFactorCodeHelp, style: t.bodySmall?.copyWith(color: muted)),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: code,
+                              autofocus: true,
+                              keyboardType: backupCode ? TextInputType.text : TextInputType.number,
+                              autofillHints: const [AutofillHints.oneTimeCode],
+                              onSubmitted: (_) => busy ? null : _verify(),
+                              decoration: InputDecoration(labelText: backupCode ? l.backupCode : l.twoFactorCode),
+                            ),
+                            CheckboxListTile(
+                              contentPadding: EdgeInsets.zero,
+                              value: trustDevice,
+                              onChanged: (v) => setState(() => trustDevice = v ?? false),
+                              title: Text(l.trustDevice, style: t.bodySmall),
+                            ),
+                            FilledButton(
+                              onPressed: busy ? null : _verify,
+                              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+                              child: Text(l.verify),
+                            ),
+                            TextButton(
+                              onPressed: () => setState(() => backupCode = !backupCode),
+                              style: TextButton.styleFrom(foregroundColor: muted),
+                              child: Text(backupCode ? l.twoFactorCode : l.useBackupCode),
                             ),
                           ],
-                        ),
-                        const SizedBox(height: 20),
-                        const TextField(
-                          keyboardType: TextInputType.emailAddress,
-                          autofillHints: [AutofillHints.email],
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const TextField(
-                          obscureText: true,
-                          autofillHints: [AutofillHints.password],
-                          decoration: InputDecoration(
-                            labelText: 'Password',
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        FilledButton(
-                          onPressed: _submit,
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                          ),
-                          child: AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 150),
-                            child: Text(
-                              signUp ? 'Create account' : 'Log in',
-                              key: ValueKey<bool>(signUp),
+                          if (message != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 12),
+                              child: Text(message!, textAlign: TextAlign.center, style: t.bodySmall),
                             ),
+                          const SizedBox(height: 20),
+                          Text(
+                            l.inviteOnly,
+                            textAlign: TextAlign.center,
+                            style:
+                                t.bodySmall?.copyWith(fontSize: 11, height: 1.5, color: muted.withValues(alpha: 0.8)),
                           ),
-                        ),
-                        if (!signUp)
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: TextButton(
-                              onPressed: () {},
-                              style: TextButton.styleFrom(
-                                foregroundColor: muted,
-                              ),
-                              child: const Text('Reset password'),
-                            ),
-                          ),
-                        const SizedBox(height: 20),
-                        Text(
-                          kIsWeb
-                              ? 'Η πρόσβαση προστατεύεται από Cloudflare '
-                                  'Access. Μην καταχωρείς πραγματικά '
-                                  'προσωπικά στοιχεία μελών μέχρι να '
-                                  'ενεργοποιηθεί το backend.'
-                              : 'Τα ευαίσθητα στοιχεία μελών '
-                                  'αποθηκεύονται στο iOS Keychain. Η '
-                                  'είσοδος απαιτεί Face ID, Touch ID ή '
-                                  'κωδικό συσκευής.',
-                          textAlign: TextAlign.center,
-                          style: t.bodySmall?.copyWith(
-                            fontSize: 11,
-                            height: 1.5,
-                            color: muted.withValues(alpha: 0.8),
-                          ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -179,61 +313,11 @@ class _AuthScreenState extends State<AuthScreen> {
                 padding: const EdgeInsets.only(bottom: 14),
                 child: Text(
                   appVersionLabel,
-                  style: t.labelSmall?.copyWith(
-                    letterSpacing: 1,
-                    color: muted.withValues(alpha: 0.6),
-                  ),
+                  style: t.labelSmall?.copyWith(letterSpacing: 1, color: muted.withValues(alpha: 0.6)),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TabLabel extends StatelessWidget {
-  const _TabLabel({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.titleSmall?.copyWith(
-                color: selected
-                    ? theme.colorScheme.onSurface
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 6),
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              height: 2,
-              width: selected ? 28 : 0,
-              decoration: BoxDecoration(
-                color: TbnColors.accent,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-          ],
         ),
       ),
     );

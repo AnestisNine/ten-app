@@ -4,11 +4,13 @@ import 'package:flutter/material.dart';
 
 import 'core/theme.dart';
 import 'data/app_store.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/auth_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await AppStore.loadAll();
+  await AppStore.loadPreferences();
+  await AppStore.api.init();
   runApp(const TbnManagerApp());
 }
 
@@ -26,30 +28,37 @@ class _TbnScrollBehavior extends MaterialScrollBehavior {
 }
 
 class TbnManagerApp extends StatelessWidget {
-  const TbnManagerApp({super.key});
+  const TbnManagerApp({super.key, this.home = const StartupScreen()});
+
+  final Widget home;
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<AppThemeOption>(
-      valueListenable: AppStore.themeOption,
-      builder: (context, themeOption, _) {
-        return MaterialApp(
-          title: 'TBN Manager',
-          debugShowCheckedModeBanner: false,
-          scrollBehavior: const _TbnScrollBehavior(),
-          theme: themeOption == AppThemeOption.cream
-              ? buildCreamTheme()
-              : buildDarkTheme(),
-          builder: (context, child) {
-            return MediaQuery.withClampedTextScaling(
-              minScaleFactor: 0.9,
-              maxScaleFactor: 1.25,
-              child: child ?? const SizedBox.shrink(),
-            );
-          },
-          home: const AuthScreen(),
-        );
-      },
+    return ValueListenableBuilder<Locale>(
+      valueListenable: AppStore.locale,
+      builder: (context, locale, _) => ValueListenableBuilder<AppThemeOption>(
+        valueListenable: AppStore.themeOption,
+        builder: (context, themeOption, _) {
+          return MaterialApp(
+            title: 'TBN Manager',
+            debugShowCheckedModeBanner: false,
+            scaffoldMessengerKey: AppStore.messengerKey,
+            scrollBehavior: const _TbnScrollBehavior(),
+            locale: locale,
+            supportedLocales: AppLocalizations.supportedLocales,
+            localizationsDelegates: AppLocalizations.localizationsDelegates,
+            theme: themeOption == AppThemeOption.cream ? buildCreamTheme() : buildDarkTheme(),
+            builder: (context, child) {
+              return MediaQuery.withClampedTextScaling(
+                minScaleFactor: 0.9,
+                maxScaleFactor: 1.25,
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+            home: home,
+          );
+        },
+      ),
     );
   }
 }

@@ -81,6 +81,20 @@ describe('CRUD with permissions and audit', () => {
 });
 
 describe('calendar privacy', () => {
+  it('creates and moves an event (timestamps from ISO strings), owned by the creator', async () => {
+    const created = await member.post('/api/v1/calendar-events', {
+      startsAt: '2026-12-01T10:00:00.000Z', title: 'Ραντεβού', type: 'Personal', location: '', notes: '', visibility: 'private',
+    });
+    expect(created.status).toBe(201);
+    expect(created.json.startsAt).toBe('2026-12-01T10:00:00.000Z');
+    const me = await member.get('/api/v1/me');
+    expect(created.json.ownerId).toBe(me.json.id);
+    const moved = await member.patch(`/api/v1/calendar-events/${created.json.id}`, { startsAt: '2026-12-02T09:30:00+02:00' });
+    expect(moved.status).toBe(200);
+    expect(moved.json.startsAt).toBe('2026-12-02T07:30:00.000Z');
+  });
+
+
   it('private events are visible and deletable only by their owner', async () => {
     const memberEvents = (await member.get('/api/v1/calendar-events')).json.items;
     const priv = memberEvents.find((e: { visibility: string }) => e.visibility === 'private');

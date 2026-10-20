@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
+import '../core/money.dart';
 import '../core/place_widgets.dart';
 import '../core/places.dart';
 import '../core/theme.dart';
@@ -16,8 +17,7 @@ class LiveDetailScreen extends StatefulWidget {
   final LiveItem live;
 
   @override
-  State<LiveDetailScreen> createState() =>
-      _LiveDetailScreenState();
+  State<LiveDetailScreen> createState() => _LiveDetailScreenState();
 }
 
 class _LiveDetailScreenState extends State<LiveDetailScreen> {
@@ -52,36 +52,33 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
     });
     mainAct = TextEditingController(text: live.mainAct);
     support = TextEditingController(text: live.support);
-    contactPerson =
-        TextEditingController(text: live.contactPerson);
-    soundEngineer =
-        TextEditingController(text: live.soundEngineer);
+    contactPerson = TextEditingController(text: live.contactPerson);
+    soundEngineer = TextEditingController(text: live.soundEngineer);
     doorDeal = TextEditingController(
-      text: live.doorDealAmount.toStringAsFixed(2),
+      text: centsToInput(live.doorDealCents),
     );
     fixAmount = TextEditingController(
-      text: live.fixAmount.toStringAsFixed(2),
+      text: centsToInput(live.fixCents),
     );
     merchIncome = TextEditingController(
-      text: live.merchIncome.toStringAsFixed(2),
+      text: centsToInput(live.merchIncomeCents),
     );
     soundEngineerFee = TextEditingController(
-      text: live.soundEngineerFee.toStringAsFixed(2),
+      text: centsToInput(live.soundEngineerFeeCents),
     );
     technicianFee = TextEditingController(
-      text: live.technicianFee.toStringAsFixed(2),
+      text: centsToInput(live.technicianFeeCents),
     );
     supportBandFee = TextEditingController(
-      text: live.supportBandFee.toStringAsFixed(2),
+      text: centsToInput(live.supportBandFeeCents),
     );
     ticketsPresale = TextEditingController(
-      text: '${live.ticketsPresaleAmount}',
+      text: '${live.ticketsPresale}',
     );
     ticketsDoor = TextEditingController(
-      text: '${live.ticketsDoorAmount}',
+      text: '${live.ticketsDoor}',
     );
-    generalInfo =
-        TextEditingController(text: live.generalInfo);
+    generalInfo = TextEditingController(text: live.generalInfo);
     liveDate = live.date;
     status = live.status;
     tourId = live.tourId;
@@ -118,20 +115,13 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       appBar: AppBar(
         title: Text(live.venue),
         actions: [
-          ValueListenableBuilder<bool>(
-            valueListenable: AppStore.isAdmin,
-            builder: (context, admin, _) {
-              if (!admin) {
-                return const SizedBox.shrink();
-              }
-              return IconButton(
-                tooltip: 'Διαγραφή live (admin)',
-                onPressed: _confirmDelete,
-                icon: const Icon(Icons.delete_outline_rounded),
-                color: TbnColors.danger,
-              );
-            },
-          ),
+          if (AppStore.can('bookings', 'delete'))
+            IconButton(
+              tooltip: 'Διαγραφή live',
+              onPressed: _confirmDelete,
+              icon: const Icon(Icons.delete_outline_rounded),
+              color: TbnColors.danger,
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.icon(
@@ -182,8 +172,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
                 ),
                 items: LiveStatus.values
                     .map(
-                      (value) =>
-                          DropdownMenuItem<LiveStatus>(
+                      (value) => DropdownMenuItem<LiveStatus>(
                         value: value,
                         child: Text(
                           liveStatusLabel(value),
@@ -219,10 +208,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
                 ],
                 onChanged: (value) {
                   setState(() {
-                    tourId =
-                        value == null || value.isEmpty
-                            ? null
-                            : value;
+                    tourId = value == null || value.isEmpty ? null : value;
                   });
                 },
               ),
@@ -248,7 +234,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
               ),
               _calculationRow(
                 'Total Income',
-                live.totalIncome,
+                live.totalIncomeCents,
                 TbnColors.success,
               ),
             ],
@@ -273,7 +259,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
               ),
               _calculationRow(
                 'Total Expenses',
-                live.totalExpenses,
+                live.totalExpensesCents,
                 TbnColors.danger,
               ),
             ],
@@ -380,22 +366,18 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
 
   Widget _calculationRow(
     String label,
-    double value,
+    int value,
     Color color,
   ) {
     final preview = label == 'Total Income'
-        ? _money(doorDeal.text) +
-            _money(fixAmount.text) +
-            _money(merchIncome.text)
-        : _money(soundEngineerFee.text) +
-            _money(technicianFee.text) +
-            _money(supportBandFee.text);
+        ? _money(doorDeal.text) + _money(fixAmount.text) + _money(merchIncome.text)
+        : _money(soundEngineerFee.text) + _money(technicianFee.text) + _money(supportBandFee.text);
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(label),
       trailing: Text(
-        '${preview.toStringAsFixed(2)} €',
+        formatCents(preview),
         style: TextStyle(
           color: color,
           fontWeight: FontWeight.w700,
@@ -422,9 +404,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
   Widget _contextBanner() {
     final t = Theme.of(context).textTheme;
     final color = liveStatusColor(status);
-    final placeText = [place.city.trim(), place.countryName.trim()]
-        .where((e) => e.isNotEmpty)
-        .join(', ');
+    final placeText = [place.city.trim(), place.countryName.trim()].where((e) => e.isNotEmpty).join(', ');
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -496,17 +476,24 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       },
     );
 
-    if (ok != true || !mounted || !AppStore.isAdmin.value) {
+    if (ok != true || !mounted) {
       return;
     }
 
-    AppStore.lives.removeWhere((l) => l.id == live.id);
-    AppStore.log('Live', 'Διαγράφηκε live: ${live.venue}');
     Navigator.of(context).pop();
+    await AppStore.remove(live);
   }
 
-  void _save() {
+  Future<void> _save() async {
     final live = widget.live;
+    final invalid = [doorDeal, fixAmount, merchIncome, soundEngineerFee, technicianFee, supportBandFee]
+        .where((c) => c.text.trim().isNotEmpty && parseCents(c.text) == null);
+    if (invalid.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Μη έγκυρο ποσό. Π.χ. 120 ή 120,50')),
+      );
+      return;
+    }
 
     setState(() {
       live.venue = venue.text.trim();
@@ -522,25 +509,19 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       live.date = liveDate;
       live.status = status;
       live.tourId = tourId;
-      live.doorDealAmount = _money(doorDeal.text);
-      live.fixAmount = _money(fixAmount.text);
-      live.merchIncome = _money(merchIncome.text);
-      live.soundEngineerFee =
-          _money(soundEngineerFee.text);
-      live.technicianFee =
-          _money(technicianFee.text);
-      live.supportBandFee =
-          _money(supportBandFee.text);
-      live.ticketsPresaleAmount =
-          _int(ticketsPresale.text);
-      live.ticketsDoorAmount = _int(ticketsDoor.text);
+      live.doorDealCents = _money(doorDeal.text);
+      live.fixCents = _money(fixAmount.text);
+      live.merchIncomeCents = _money(merchIncome.text);
+      live.soundEngineerFeeCents = _money(soundEngineerFee.text);
+      live.technicianFeeCents = _money(technicianFee.text);
+      live.supportBandFeeCents = _money(supportBandFee.text);
+      live.ticketsPresale = _int(ticketsPresale.text);
+      live.ticketsDoor = _int(ticketsDoor.text);
       live.generalInfo = generalInfo.text.trim();
     });
 
-    AppStore.log(
-      'Live',
-      'Ενημερώθηκε Live: ${live.venue}',
-    );
+    final saved = await AppStore.update(live);
+    if (!saved || !mounted) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -549,12 +530,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
     );
   }
 
-  double _money(String value) {
-    return double.tryParse(
-          value.replaceAll(',', '.'),
-        ) ??
-        0;
-  }
+  int _money(String value) => parseCents(value) ?? 0;
 
   int _int(String value) {
     return int.tryParse(value) ?? 0;

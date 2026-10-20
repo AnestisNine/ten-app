@@ -4,18 +4,19 @@ import '../core/app_info.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../data/app_store.dart';
+import '../l10n/app_localizations.dart';
 import 'finance_screen.dart';
 import 'members_screen.dart';
 import 'menu_detail_screens.dart';
 import 'rent_screen.dart';
+import 'users_screen.dart';
 
 class MenuScreen extends StatelessWidget {
   const MenuScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final unread =
-        AppStore.notifications.where((n) => !n.read).length;
+    final unread = AppStore.notifications.where((n) => !n.read).length;
 
     return SafeArea(
       bottom: false,
@@ -26,24 +27,21 @@ class MenuScreen extends StatelessWidget {
             title: 'Menu',
             subtitle: 'Οικονομικά, μέλη και ρυθμίσεις',
           ),
-          const SectionLabel('Οικονομικά'),
-          _group(context, [
-            _Entry(Icons.account_balance_wallet_outlined, 'Οικονομικά',
-                'Έσοδα, έξοδα, χρέη, ταμείο', const FinanceScreen(),
-                TbnColors.success),
-            _Entry(Icons.home_work_outlined, 'Ενοίκιο',
-                'Πληρωμές και οφειλές ανά μήνα', const RentScreen(),
-                TbnColors.warning),
-            _Entry(Icons.savings_outlined, 'Cashbox',
-                'Υπόλοιπο και κινήσεις', const CashboxScreen(),
-                TbnColors.info),
-          ]),
+          if (AppStore.can('finance', 'read')) ...[
+            const SectionLabel('Οικονομικά'),
+            _group(context, [
+              _Entry(Icons.account_balance_wallet_outlined, 'Οικονομικά', 'Έσοδα, έξοδα, χρέη, ταμείο',
+                  const FinanceScreen(), TbnColors.success),
+              _Entry(Icons.home_work_outlined, 'Ενοίκιο', 'Πληρωμές και οφειλές ανά μήνα', const RentScreen(),
+                  TbnColors.warning),
+              _Entry(Icons.savings_outlined, 'Cashbox', 'Υπόλοιπο και κινήσεις', const CashboxScreen(), TbnColors.info),
+            ]),
+          ],
           const SectionLabel('Μέλη & αρχεία'),
           _group(context, [
-            _Entry(Icons.people_outline, 'Μέλη', 'Στοιχεία μελών',
-                const MembersScreen(), TbnColors.accent),
-            _Entry(Icons.cloud_outlined, 'Drive', 'Shared Google Drive',
-                const DriveScreen(), TbnColors.info),
+            if (AppStore.can('members', 'read'))
+              _Entry(Icons.people_outline, 'Μέλη', 'Στοιχεία μελών', const MembersScreen(), TbnColors.accent),
+            _Entry(Icons.cloud_outlined, 'Drive', 'Shared Google Drive', const DriveScreen(), TbnColors.info),
           ]),
           const SectionLabel('Σύστημα'),
           _group(context, [
@@ -55,10 +53,12 @@ class MenuScreen extends StatelessWidget {
               TbnColors.accent,
               badge: unread > 0 ? '$unread' : null,
             ),
-            _Entry(Icons.history, 'Ιστορικό αλλαγών', 'Audit log',
-                const AuditScreen(), TbnColors.info),
-            _Entry(Icons.settings_outlined, 'Settings',
-                'Ρυθμίσεις εφαρμογής', const SettingsScreen(),
+            if (AppStore.can('users', 'read'))
+              _Entry(Icons.manage_accounts_outlined, AppLocalizations.of(context).users,
+                  AppLocalizations.of(context).usersSubtitle, const UsersScreen(), TbnColors.accent),
+            if (AppStore.can('audit', 'read'))
+              _Entry(Icons.history, 'Ιστορικό αλλαγών', 'Audit log', const AuditScreen(), TbnColors.info),
+            _Entry(Icons.settings_outlined, 'Settings', 'Ρυθμίσεις εφαρμογής', const SettingsScreen(),
                 const Color(0xFF8A93A3)),
           ]),
           Padding(
@@ -81,8 +81,7 @@ class MenuScreen extends StatelessWidget {
       final e = entries[i];
       tiles.add(
         ListTile(
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           leading: IconChip(icon: e.icon, color: e.color, size: 38),
           title: Text(e.title),
           subtitle: Text(e.subtitle),
