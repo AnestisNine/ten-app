@@ -15,18 +15,25 @@ if (toggle && nav) {
   });
 }
 
+// Highlight the menu item of the section currently under the sticky menu.
 const links = new Map([...document.querySelectorAll('.nav a[data-section]')].map((a) => [a.dataset.section, a]));
 const sections = [...links.keys()].map((id) => document.getElementById(id)).filter(Boolean);
-if (sections.length && 'IntersectionObserver' in window) {
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        for (const a of links.values()) a.classList.remove('active');
-        links.get(entry.target.id)?.classList.add('active');
-      }
-    },
-    { rootMargin: '-45% 0px -50% 0px' },
-  );
-  sections.forEach((s) => observer.observe(s));
+let ticking = false;
+function updateActive() {
+  ticking = false;
+  const line = (document.querySelector('.site-header')?.getBoundingClientRect().bottom ?? 0) + 24;
+  let current = sections[0];
+  for (const section of sections) if (section.getBoundingClientRect().top <= line) current = section;
+  // At the very bottom, the last section is the one being read.
+  if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2) current = sections[sections.length - 1];
+  for (const [id, a] of links) a.classList.toggle('active', current?.id === id);
+}
+if (sections.length) {
+  addEventListener('scroll', () => {
+    if (!ticking) {
+      ticking = true;
+      requestAnimationFrame(updateActive);
+    }
+  }, { passive: true });
+  updateActive();
 }

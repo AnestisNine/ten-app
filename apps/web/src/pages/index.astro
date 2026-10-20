@@ -12,12 +12,11 @@ const lang = 'en' as const;
 const s = t[lang];
 ---
 <Base lang={lang} path="/">
-  <section class="hero" id="home">
+  <section class="hero">
     <!-- Band photo: add public/images/hero.jpg and uncomment
     <img class="hero-photo" src="/images/hero.jpg" alt="" /> -->
     <div class="hero-inner">
       <h1 style="position:absolute;left:-9999px">{site.name}</h1>
-      <img class="hero-logo" src="/images/logo.png" alt={site.name} width="2000" height="1000" fetchpriority="high" />
       <p>{s.tagline}</p>
       <div class="hero-actions">
         <a class="btn primary" href="#tour">{s.seeTour}</a>
@@ -51,9 +50,9 @@ const s = t[lang];
   </section>
 
   <section class="section" id="about" aria-labelledby="about-title">
-    <div class="wrap prose">
+    <div class="wrap">
       <div class="section-head"><h2 id="about-title">{s.about}</h2></div>
-      <p>{s.aboutText}</p>
+      <div class="prose"><p>{s.aboutText}</p></div>
     </div>
   </section>
 

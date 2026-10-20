@@ -51,19 +51,19 @@ const canonical = new URL(href(lang, path), Astro.site);
   </head>
   <body>
     <a class="skip" href="#main">{s.skip}</a>
-    <header class="site-header">
-      <div class="wrap">
-        <a class="brand" href={anchor('home')} aria-label={`${site.name} — ${s.home}`}>
-          <img src="/images/logo.png" alt={site.name} width="80" height="40" />
-        </a>
-        <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
-        <nav class="nav" id="site-nav" aria-label="Main">
-          {nav.map(([id, label]) => (
-            <a href={anchor(id)} data-section={id}>{label}</a>
-          ))}
-        </nav>
-      </div>
+    <header class="masthead" id="home">
+      <a href={anchor('home')} aria-label={`${site.name} — ${s.home}`}>
+        <img class="masthead-logo" src="/images/logo.png" alt={site.name} width="2000" height="1000" fetchpriority="high" />
+      </a>
     </header>
+    <div class="site-header">
+      <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="site-nav">Menu</button>
+      <nav class="nav" id="site-nav" aria-label="Main">
+        {nav.map(([id, label]) => (
+          <a href={anchor(id)} data-section={id}>{label}</a>
+        ))}
+      </nav>
+    </div>
     <main id="main">
       <slot />
     </main>
