@@ -33,7 +33,7 @@ const streaming = Object.entries({
               {r.cover ? <img src={`/images/${r.cover}`} alt={r.title} loading="lazy" /> : <img class="placeholder" src="/images/logo.png" alt="" />}
             </div>
             <h3>{r.title}</h3>
-            <div class="meta"><span>{r.type}</span><span>{r.year}</span></div>
+            {(r.type || r.year) && <div class="meta"><span>{r.type}</span><span>{r.year}</span></div>}
             {Object.entries(r.links).map(([name, url]) => <a class="link-arrow" href={url} target="_blank" rel="noopener">{s.listen}: {name}</a>)}
           </article>
         ))}

@@ -11,16 +11,21 @@ export const site = {
   email: 'info@thebonnienettles.com',
   bookingEmail: 'booking@thebonnienettles.com',
   /** Merch is sold on Bandcamp until online payments are switched on. */
-  bandcampUrl: '',
+  bandcampUrl: 'https://thebonnienettles.bandcamp.com/merch',
   social: {
-    instagram: '',
+    instagram: 'https://www.instagram.com/thebonnienettles/',
     facebook: '',
     tiktok: '',
     youtube: '',
-    spotify: '',
-    bandcamp: '',
+    spotify: 'https://open.spotify.com/artist/6ljLzYBRit1D6m43dAOGC8',
+    bandcamp: 'https://thebonnienettles.bandcamp.com',
     appleMusic: '',
   },
-  /** Newest first. `cover` is a file in public/images/ (optional). */
-  releases: [] as { title: string; year: number; type: string; cover?: string; links: Record<string, string> }[],
+  /** Newest first. `cover` is a file in public/images/; year/type are shown when filled in. */
+  releases: [
+    {
+      title: 'Drift Like Home',
+      links: { Bandcamp: 'https://thebonnienettles.bandcamp.com/track/drift-like-home' },
+    },
+  ] as { title: string; year?: number; type?: string; cover?: string; links: Record<string, string> }[],
 };

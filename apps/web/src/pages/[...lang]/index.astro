@@ -43,7 +43,10 @@ const latest = site.releases[0];
           <h2 id="music-title">{latest.title}</h2>
           <a class="link-arrow" href={href(lang, '/music')}>{s.music} →</a>
         </div>
-        <p class="lead">{latest.type} · {latest.year}</p>
+        {(latest.type || latest.year) && <p class="lead">{[latest.type, latest.year].filter(Boolean).join(' · ')}</p>}
+        <div class="hero-actions" style="justify-content:flex-start;margin-top:20px">
+          {Object.entries(latest.links).map(([name, url]) => <a class="btn" href={url} target="_blank" rel="noopener">{s.listen}: {name}</a>)}
+        </div>
       </div>
     </section>
   )}
