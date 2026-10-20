@@ -5,7 +5,9 @@ ARG NODE_IMAGE=node:22-bookworm-slim
 ARG DEBIAN_IMAGE=debian:bookworm-slim
 
 # ---------------------------------------------------------------- Flutter web build
-FROM ${DEBIAN_IMAGE} AS flutter
+# The Flutter SDK tarball is x86-64 only; the web output is the same on every platform
+# (on Apple Silicon Docker emulates this stage).
+FROM --platform=linux/amd64 ${DEBIAN_IMAGE} AS flutter
 ARG FLUTTER_VERSION=3.47.7
 ARG FLUTTER_SHA256=af7455f540df951184c7953fbe3cf884766e7541dacf8571f9f582db03dd6230
 RUN apt-get update \

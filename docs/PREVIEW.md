@@ -1,60 +1,75 @@
-# Γρήγορη δοκιμή (preview) σε δικό σου υπολογιστή
+# Δοκιμή της εφαρμογής στον υπολογιστή σου
 
-Τρέχει όλη την εφαρμογή (app + βάση) με δεδομένα επίδειξης. Χρειάζεται μόνο Docker.
+Χρόνος: ~10 λεπτά δουλειά δική σου + 10–25 λεπτά αναμονή την πρώτη φορά.
+Τα δεδομένα είναι **επίδειξης** — μην βάλεις πραγματικά στοιχεία εδώ.
 
-## 1. Εγκατάσταση Docker
+---
 
-- macOS / Windows: [Docker Desktop](https://www.docker.com/products/docker-desktop/) → εγκατάσταση → άνοιγμα.
-- Linux: <https://docs.docker.com/engine/install/>
+## Βήμα 1 — Εγκατάσταση Docker Desktop (μία φορά)
 
-## 2. Πρόσβαση στο image (μία φορά)
+1. Πήγαινε στο <https://www.docker.com/products/docker-desktop/> και κατέβασε την έκδοση για τον υπολογιστή σου
+   (Windows, ή Mac — διάλεξε «Apple Silicon» αν ο Mac είναι M1/M2/M3/M4, αλλιώς «Intel»).
+2. Εγκατάστησέ το όπως κάθε πρόγραμμα και άνοιξέ το. Αν ζητήσει λογαριασμό, πάτα «Skip».
+3. Περίμενε μέχρι κάτω αριστερά να γράφει **Engine running** (πράσινο).
 
-Το image είναι private στο GitHub. Φτιάξε token: GitHub → Settings → Developer settings → Personal access tokens →
-**Tokens (classic)** → Generate new token → μόνο το scope **`read:packages`**. Μετά, σε terminal:
+## Βήμα 2 — Κατέβασμα του κώδικα
 
-```bash
-docker login ghcr.io -u AnestisNine      # ως password βάλε το token
+1. Άνοιξε <https://github.com/AnestisNine/ten-app> (συνδεδεμένος στο GitHub).
+2. Πράσινο κουμπί **Code** → **Download ZIP**.
+3. Αποσυμπίεσε το ZIP (διπλό κλικ στο Mac· δεξί κλικ → «Εξαγωγή όλων» στα Windows).
+   Θα δημιουργηθεί ένας φάκελος `ten-app-main`.
+
+## Βήμα 3 — Άνοιγμα terminal μέσα στον φάκελο
+
+- **Windows:** άνοιξε τον φάκελο `ten-app-main`, κάνε κλικ στη γραμμή διεύθυνσης πάνω, γράψε `powershell` και πάτα Enter.
+- **Mac:** άνοιξε την εφαρμογή **Terminal**, γράψε `cd ` (με κενό στο τέλος), σύρε τον φάκελο `ten-app-main` μέσα
+  στο παράθυρο και πάτα Enter.
+
+## Βήμα 4 — Εκκίνηση
+
+Αντέγραψε αυτή την εντολή στο terminal και πάτα Enter:
+
+```
+docker compose -f docker-compose.preview.yml up --build
 ```
 
-## 3. Αρχεία
+Την πρώτη φορά κατεβάζει και φτιάχνει τα πάντα (10–25 λεπτά· θα δεις πολλές γραμμές να περνούν).
+Είναι έτοιμο όταν εμφανιστεί:
 
-Από το GitHub: **Code → Download ZIP**, αποσυμπίεσε, και άνοιξε terminal μέσα στον φάκελο. Έπειτα:
-
-```bash
-docker run --rm node:22-alpine node -e "
-const r=(n)=>require('crypto').randomBytes(n).toString('base64');
-console.log('APP_URL=http://localhost:8080');
-console.log('POSTGRES_PASSWORD='+r(18).replace(/[^A-Za-z0-9]/g,''));
-console.log('AUTH_SECRET='+r(48));
-console.log('DATA_ENCRYPTION_KEY='+r(32));
-console.log('SEED_PASSWORD=demo-'+r(9).replace(/[^A-Za-z0-9]/g,''));
-console.log('ALLOW_DEMO_SEED=1');" > .env
+```
+TBN API listening on :8080
 ```
 
-## 4. Εκκίνηση + δεδομένα επίδειξης
+**Μην κλείσεις αυτό το παράθυρο** όσο δοκιμάζεις.
 
-```bash
-docker compose up -d app
-docker compose exec app node dist/db/seed.js
-```
+## Βήμα 5 — Άνοιγμα της εφαρμογής
 
-Άνοιξε το <http://localhost:8080>. Χρήστες: `member@tbn.local`, `admin@tbn.local`, `manager@tbn.local`,
-`accountant@tbn.local`, `merch@tbn.local`, `pos@tbn.local`, `social@tbn.local`, με κωδικό την τιμή `SEED_PASSWORD`
-του `.env`. Ο admin, ο manager, ο λογιστής και ο social θα σου ζητήσουν 2FA (θέλει Google Authenticator ή παρόμοιο).
+Στον browser: **<http://localhost:8080>**
 
-## 5. (Προαιρετικά) Link για να το δουν κι άλλοι, χωρίς domain
+| Email | Ρόλος | Τι θα δεις |
+|---|---|---|
+| `member@tbn.local` | Μέλος | Μπαίνει κατευθείαν· βλέπει τα πάντα, αλλάζει μόνο το ημερολόγιο |
+| `admin@tbn.local` | Admin | Ζητά ενεργοποίηση 2FA (θέλει Google Authenticator ή παρόμοιο στο κινητό), μετά έχει πλήρη πρόσβαση + «Menu → Χρήστες» |
+| `manager@tbn.local` | Manager | 2FA, μετά επεξεργάζεται τα πάντα εκτός από χρήστες |
+| `accountant@tbn.local` | Λογιστής | 2FA, μόνο ανάγνωση |
+| `merch@tbn.local` | Merch | Χωρίς 2FA, μόνο merch / παραγγελίες |
 
-```bash
-docker run --rm --network tbn_default cloudflare/cloudflared:2026.10.0 tunnel --no-autoupdate --url http://app:8080
-```
+Κωδικός για όλους: **`tbn-preview`**
 
-Θα εμφανίσει μια διεύθυνση `https://....trycloudflare.com`. Βάλ' την στο `APP_URL=` του `.env`, μετά τρέξε
-`docker compose up -d app` (σε άλλο terminal, ενώ το tunnel μένει ανοιχτό) και άνοιξε το link.
-Το link ισχύει όσο τρέχει η εντολή. Είναι για δοκιμή μόνο: για μόνιμη χρήση ακολουθεί το `OPERATIONS.md`
-(domain + Cloudflare Tunnel + Access).
+---
 
-## Τέλος δοκιμής
+## Σταμάτημα / ξανά εκκίνηση
 
-```bash
-docker compose down -v      # σβήνει και τα δεδομένα επίδειξης
-```
+- Σταμάτημα: στο terminal πάτα **Ctrl + C**.
+- Ξανά εκκίνηση: ίδια εντολή του Βήματος 4 (τώρα ξεκινά σε λίγα δευτερόλεπτα· οι αλλαγές σου μένουν).
+- Σβήσιμο όλων των δεδομένων επίδειξης:
+  ```
+  docker compose -f docker-compose.preview.yml down -v
+  ```
+
+## Αν κάτι δεν πάει καλά
+
+- **`docker: command not found` / «δεν αναγνωρίζεται»:** το Docker Desktop δεν είναι ανοιχτό ή δεν ολοκληρώθηκε η
+  εγκατάσταση — άνοιξέ το, περίμενε «Engine running», κλείσε και ξανάνοιξε το terminal.
+- **`port is already allocated`:** κάτι άλλο χρησιμοποιεί τη θύρα 8080 — κλείσε το ή επανεκκίνησε τον υπολογιστή.
+- **Οτιδήποτε άλλο:** στείλε μου τις τελευταίες ~20 γραμμές του terminal.

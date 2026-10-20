@@ -1,0 +1,39 @@
+# Local preview with demo data — NOT for real data (the secrets below are public).
+#   docker compose -f docker-compose.preview.yml up --build
+# then open http://localhost:8080  (users: member@tbn.local, admin@tbn.local, ... password: tbn-preview)
+name: tbn-preview
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tbn
+      POSTGRES_DB: tbn
+      POSTGRES_PASSWORD: preview
+    volumes:
+      - preview-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tbn -d tbn"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgres://tbn:preview@db:5432/tbn
+      APP_URL: http://localhost:8080
+      AUTH_SECRET: preview-only-secret-do-not-use-for-real-data-0123456789
+      DATA_ENCRYPTION_KEY: cHJldmlldy1vbmx5LWtleS1ub3QtZm9yLXJlYWwtdXM=
+      SEED_PASSWORD: tbn-preview
+      ALLOW_DEMO_SEED: "1"
+    command: ["sh", "-c", "node dist/db/migrate.js && node dist/db/seed.js --if-empty && node dist/server.js"]
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  preview-db:

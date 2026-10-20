@@ -171,6 +171,12 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const key = process.env.DATA_ENCRYPTION_KEY;
   if (!url || !key) throw new Error('DATABASE_URL and DATA_ENCRYPTION_KEY must be set');
   const { db, sql } = createDb(url);
+  // --if-empty: seed only a fresh database (used by the preview so restarts keep your changes).
+  if (process.argv.includes('--if-empty') && (await db.select({ id: s.user.id }).from(s.user).limit(1)).length > 0) {
+    console.log('Database already has users; skipping demo data.');
+    await sql.end();
+    process.exit(0);
+  }
   await seed(db, key);
   await sql.end();
   console.log(`Seeded. Users (password ${process.env.SEED_PASSWORD ? 'from SEED_PASSWORD' : `"${DEV_PASSWORD}"`}):`);
