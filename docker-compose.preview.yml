@@ -1,6 +1,10 @@
 # Local preview with demo data — NOT for real data (the secrets below are public).
 #   docker compose -f docker-compose.preview.yml up --build
 # then open http://localhost:8080  (users: member@tbn.local, admin@tbn.local, ... password: tbn-preview)
+#
+# Share a temporary public link (works while this computer and the command are running):
+#   docker compose -f docker-compose.preview.yml --profile share up --build
+# and look for the https://….trycloudflare.com address in the output.
 name: tbn-preview
 
 services:
@@ -27,6 +31,8 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://tbn:preview@db:5432/tbn
       APP_URL: http://localhost:8080
+      # Allows signing in through a temporary Cloudflare quick-tunnel address (profile "share").
+      TRUSTED_ORIGINS: https://*.trycloudflare.com
       AUTH_SECRET: preview-only-secret-do-not-use-for-real-data-0123456789
       DATA_ENCRYPTION_KEY: cHJldmlldy1vbmx5LWtleS1ub3QtZm9yLXJlYWwtdXM=
       SEED_PASSWORD: tbn-preview
@@ -34,6 +40,13 @@ services:
     command: ["sh", "-c", "node dist/db/migrate.js && node dist/db/seed.js --if-empty && node dist/server.js"]
     ports:
       - "127.0.0.1:8080:8080"
+
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.0
+    profiles: ["share"]
+    command: tunnel --no-autoupdate --url http://app:8080
+    depends_on:
+      - app
 
 volumes:
   preview-db:

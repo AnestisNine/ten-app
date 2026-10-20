@@ -63,6 +63,30 @@ export function requirePermission(resource: Resource, action: Action) {
 }
 
 /**
+ * Exact origins, or a single-level wildcard host such as `https://*.trycloudflare.com`
+ * (used only by the preview setup).
+ */
+export function originAllowed(origin: string, patterns: readonly string[]): boolean {
+  for (const raw of patterns) {
+    const pattern = raw.replace(/\/$/, '');
+    if (pattern === origin) return true;
+    const m = /^(https?):\/\/\*\.([a-z0-9.-]+)$/i.exec(pattern);
+    if (m) {
+      try {
+        const u = new URL(origin);
+        const label = u.hostname.slice(0, -(m[2]!.length + 1));
+        if (u.protocol === `${m[1]}:` && u.hostname.endsWith(`.${m[2]}`) && /^[a-z0-9-]+$/i.test(label) && !u.port) {
+          return true;
+        }
+      } catch {
+        // not a URL
+      }
+    }
+  }
+  return false;
+}
+
+/**
  * CSRF defence for cookie-authenticated requests: browsers always send Origin on cross-site
  * POST/PUT/PATCH/DELETE, so any state-changing request with a foreign Origin is rejected.
  * Native apps send no Origin and are unaffected.
@@ -72,8 +96,8 @@ export const checkOrigin = createMiddleware<AppEnv>(async (c, next) => {
   if (method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
     const origin = c.req.header('origin');
     const { config } = c.var.deps;
-    const allowed = [config.APP_URL, ...splitList(config.TRUSTED_ORIGINS)].map((o) => o.replace(/\/$/, ''));
-    if (origin && !allowed.includes(origin)) throw new ApiError('bad_origin');
+    const allowed = [config.APP_URL, ...splitList(config.TRUSTED_ORIGINS)];
+    if (origin && !originAllowed(origin, allowed)) throw new ApiError('bad_origin');
   }
   await next();
 });
