@@ -11,6 +11,8 @@ import * as s from './schema.js';
 import { encryptJson } from '../crypto.js';
 
 export const DEV_PASSWORD = 'tbn-dev-password';
+/** A public preview must not use the well-known development password. */
+const seedPassword = () => process.env.SEED_PASSWORD || DEV_PASSWORD;
 
 export const DEV_USERS: { email: string; name: string; roles: Role[] }[] = [
   { email: 'admin@tbn.local', name: 'Admin', roles: ['admin'] },
@@ -34,7 +36,7 @@ export async function seed(db: Db, encryptionKey: string) {
     }
     await tx.execute(rawSql`ALTER SEQUENCE orders_number_seq RESTART WITH 1001`);
 
-    const hash = await hashPassword(DEV_PASSWORD);
+    const hash = await hashPassword(seedPassword());
     const userIds: Record<string, string> = {};
     for (const u of DEV_USERS) {
       const id = randomUUID();
@@ -168,6 +170,6 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   const { db, sql } = createDb(url);
   await seed(db, key);
   await sql.end();
-  console.log(`Seeded. Users (password "${DEV_PASSWORD}"):`);
+  console.log(`Seeded. Users (password ${process.env.SEED_PASSWORD ? 'from SEED_PASSWORD' : `"${DEV_PASSWORD}"`}):`);
   for (const u of DEV_USERS) console.log(`  ${u.email.padEnd(24)} ${u.roles.join(', ')}`);
 }
