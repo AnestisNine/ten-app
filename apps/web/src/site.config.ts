@@ -4,6 +4,8 @@
  */
 export const site = {
   name: 'The Bonnie Nettles',
+  /** false = pre-launch: search engines are told not to index the site. Set to true when going live. */
+  launched: false,
   /** Internal app / API, reached through Cloudflare Tunnel. Override with PUBLIC_API_URL at build time. */
   apiUrl: import.meta.env.PUBLIC_API_URL ?? 'https://app.thebonnienettles.com',
   email: 'info@thebonnienettles.com',

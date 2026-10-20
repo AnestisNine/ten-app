@@ -46,6 +46,7 @@ const canonical = new URL(href(lang, path), Astro.site);
     <meta property="og:locale" content={lang === 'el' ? 'el_GR' : 'en_GB'} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="tbn-api" content={site.apiUrl} />
+    {!site.launched && <meta name="robots" content="noindex, nofollow" />}
   </head>
   <body>
     <a class="skip" href="#main">{s.skip}</a>

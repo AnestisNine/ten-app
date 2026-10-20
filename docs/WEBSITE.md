@@ -1,6 +1,6 @@
 # Δημόσιο site — thebonnienettles.com
 
-Στατικό site (Astro) στο Cloudflare Pages, ελληνικά στη ρίζα (`/`) και αγγλικά στο `/en`.
+Στατικό site (Astro) σε Cloudflare Worker, ελληνικά στη ρίζα (`/`) και αγγλικά στο `/en`.
 Οι συναυλίες (μόνο τα **επιβεβαιωμένα** lives) και το merch έρχονται αυτόματα από το app μέσω
 `https://app.thebonnienettles.com/api/public/...`. Μέχρι να στηθεί ο server, το site δείχνει «δεν υπάρχουν
 ανακοινωμένες συναυλίες» / «νέο merch σύντομα».
@@ -17,6 +17,12 @@
    `thebonnienettles.com`, και ξανά για `www.thebonnienettles.com`. Το Cloudflare φτιάχνει μόνο του το DNS.
 
 Το API που διαβάζει το site είναι το `https://app.thebonnienettles.com` (`apps/web/src/site.config.ts`).
+
+## Πριν βγει live
+
+Το `launched: false` στο `apps/web/src/site.config.ts` λέει στις μηχανές αναζήτησης να μην ευρετηριάσουν το site
+(meta `noindex` + `robots.txt`). Όσο δοκιμάζουμε, **δεν** προστίθεται custom domain — μόνο η διεύθυνση `workers.dev`.
+Για launch: `launched: true`, push, και μετά τα custom domains (βήμα 3 πιο πάνω).
 
 ## Αλλαγές περιεχομένου
 
