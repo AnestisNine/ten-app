@@ -37,6 +37,8 @@ services:
       DATA_ENCRYPTION_KEY: cHJldmlldy1vbmx5LWtleS1ub3QtZm9yLXJlYWwtdXM=
       SEED_PASSWORD: tbn-preview
       ALLOW_DEMO_SEED: "1"
+      # Preview only: admin/manager can work without setting up 2FA. Always on in production.
+      REQUIRE_TWO_FACTOR: "false"
     command: ["sh", "-c", "node dist/db/migrate.js && node dist/db/seed.js --if-empty && node dist/server.js"]
     ports:
       - "127.0.0.1:8080:8080"

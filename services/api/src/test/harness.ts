@@ -12,7 +12,7 @@ export const TEST_DB_URL = process.env.TEST_DATABASE_URL ?? 'postgres://tbn:tbn@
 export const APP_URL = 'http://tbn.test';
 export { DEV_PASSWORD };
 
-export async function createTestApp() {
+export async function createTestApp(env: Record<string, string> = {}) {
   // Fresh schema for every test file.
   const admin = postgres(TEST_DB_URL, { onnotice: () => {} });
   await admin.unsafe('DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;');
@@ -27,6 +27,7 @@ export async function createTestApp() {
     DATA_ENCRYPTION_KEY: Buffer.alloc(32, 7).toString('base64'),
     FILES_DIR: '/tmp/tbn-test-files',
     PUBLIC_SITE_ORIGINS: 'https://thebonnienettles.test',
+    ...env,
   });
   const { db, sql } = createDb(TEST_DB_URL);
   await seed(db, config.DATA_ENCRYPTION_KEY);

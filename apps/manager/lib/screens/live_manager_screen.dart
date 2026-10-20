@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 import '../core/models.dart';
-import '../core/place_widgets.dart';
-import '../core/places.dart';
 import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../data/app_store.dart';
@@ -233,82 +231,25 @@ class _LiveManagerScreenState extends State<LiveManagerScreen> {
     );
   }
 
-  void _addLive() {
-    final venue = TextEditingController();
-    final place = PlaceValue(
-      countryCode: 'GR',
-      countryName: 'Greece',
-    );
-    DateTime date = DateTime.now().add(const Duration(days: 30));
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, modalSetState) => Padding(
-          padding: EdgeInsets.only(
-            left: 20,
-            right: 20,
-            top: 20,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+  /// Opens the full live page for a new live; it is saved only when the user presses Save.
+  Future<void> _addLive() async {
+    final now = DateTime.now();
+    await Navigator.of(context).push(
+      TbnPageRoute<void>(
+        builder: (_) => LiveDetailScreen(
+          live: LiveItem(
+            id: newId(),
+            venue: '',
+            country: 'Greece',
+            countryCode: 'GR',
+            date: DateTime(now.year, now.month, now.day),
+            status: LiveStatus.proposal,
           ),
-          child: ListView(
-            shrinkWrap: true,
-            children: [
-              TextField(
-                controller: venue,
-                decoration: const InputDecoration(labelText: 'Venue'),
-              ),
-              const SizedBox(height: 10),
-              PlaceFields(
-                value: place,
-                onChanged: () => modalSetState(() {}),
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Ημερομηνία'),
-                trailing: Text('${date.day}/${date.month}/${date.year}'),
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    firstDate: DateTime(2020),
-                    lastDate: DateTime(2035),
-                    initialDate: date,
-                  );
-                  if (picked != null) {
-                    modalSetState(() => date = picked);
-                  }
-                },
-              ),
-              FilledButton(
-                onPressed: () {
-                  if (venue.text.trim().isEmpty || !place.hasCity) {
-                    return;
-                  }
-                  AppStore.create(
-                    LiveItem(
-                      id: newId(),
-                      venue: venue.text.trim(),
-                      city: place.city.trim(),
-                      country: place.countryName,
-                      countryCode: place.countryCode,
-                      lat: place.lat,
-                      lon: place.lon,
-                      date: date,
-                      status: LiveStatus.proposal,
-                    ),
-                  );
-
-                  setState(() {});
-                  Navigator.pop(context);
-                },
-                child: const Text('Αποθήκευση'),
-              ),
-            ],
-          ),
+          isNew: true,
         ),
       ),
     );
+    if (mounted) setState(() {});
   }
 }
 

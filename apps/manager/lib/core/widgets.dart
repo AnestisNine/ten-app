@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 
 import 'money.dart';
 
+import '../data/app_store.dart';
 import 'models.dart';
+import 'roles.dart';
 import 'theme.dart';
 
 /// Page route that keeps pushed pages readable on wide screens
@@ -384,6 +386,37 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 4),
             Text(subtitle!, style: t.bodySmall, textAlign: TextAlign.center),
           ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Shown on pages the user may view but not change (their role is read-only there).
+class ReadOnlyBanner extends StatelessWidget {
+  const ReadOnlyBanner({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final roles = (AppStore.me.value?.roles ?? const <String>[]).map(roleLabel).join(', ');
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: TbnColors.warning.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: TbnColors.warning.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_outline_rounded, color: TbnColors.warning, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Μόνο προβολή: ο ρόλος σου${roles.isEmpty ? '' : ' ($roles)'} δεν επιτρέπει αλλαγές εδώ.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
         ],
       ),
     );

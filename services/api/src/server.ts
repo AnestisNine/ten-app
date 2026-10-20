@@ -7,6 +7,9 @@ import { runMigrations } from './db/migrate.js';
 import { createMailer } from './mailer.js';
 
 const config = loadConfig();
+if (config.NODE_ENV === 'production' && !config.REQUIRE_TWO_FACTOR && process.env.ALLOW_DEMO_SEED !== '1') {
+  throw new Error('REQUIRE_TWO_FACTOR=false is only allowed for the demo preview (ALLOW_DEMO_SEED=1)');
+}
 await runMigrations(config.DATABASE_URL);
 const { db, sql } = createDb(config.DATABASE_URL);
 const mailer = createMailer(config);

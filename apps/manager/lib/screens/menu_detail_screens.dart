@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../core/models.dart';
 import '../core/money.dart';
+import '../core/roles.dart';
 import '../core/van_dialog.dart';
 import '../core/vans.dart';
 import '../core/widgets.dart';
@@ -503,26 +504,5 @@ class _SettingsScreenState extends State<SettingsScreen> {
       'fuelConsumption': r.consumption,
       'vanId': r.vanId,
     });
-  }
-}
-
-String roleLabel(String role) {
-  switch (role) {
-    case 'admin':
-      return 'Admin';
-    case 'manager':
-      return 'Manager';
-    case 'member':
-      return 'Μέλος';
-    case 'accountant':
-      return 'Λογιστής';
-    case 'merchManager':
-      return 'Merch manager';
-    case 'merchStaff':
-      return 'Merch (POS)';
-    case 'socialManager':
-      return 'Social media';
-    default:
-      return role;
   }
 }

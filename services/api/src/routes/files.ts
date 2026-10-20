@@ -10,7 +10,7 @@ import { writeAudit } from '../audit.js';
 import { ApiError } from '../errors.js';
 import { clientIp, requirePermission } from '../middleware.js';
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024;
 
 /** Identify images by content, not by the client-supplied type or name. */
 export function sniffImage(buf: Uint8Array): 'image/jpeg' | 'image/png' | 'image/webp' | null {
@@ -66,7 +66,7 @@ function registerImageUpload(app: App, target: ImageTarget) {
       const body = await c.req.parseBody();
       const file = body.file;
       if (!(file instanceof File)) throw new ApiError('validation_failed', 'Missing file');
-      if (file.size > MAX_IMAGE_BYTES) throw new ApiError('validation_failed', 'Image larger than 5 MB');
+      if (file.size > MAX_IMAGE_BYTES) throw new ApiError('validation_failed', 'Image larger than 10 MB');
       const buf = new Uint8Array(await file.arrayBuffer());
       const mime = sniffImage(buf);
       if (!mime) throw new ApiError('validation_failed', 'Only JPEG, PNG or WebP images');

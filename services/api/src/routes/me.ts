@@ -32,10 +32,10 @@ function permissionsFor(user: CurrentUser) {
   return out;
 }
 
-export function meOf(user: CurrentUser) {
+export function meOf(user: CurrentUser, enforce2fa = true) {
   return {
     ...user,
-    twoFactorRequired: requiresTwoFactor(user.roles),
+    twoFactorRequired: enforce2fa && requiresTwoFactor(user.roles),
     permissions: permissionsFor(user),
   };
 }
@@ -57,7 +57,7 @@ export function registerMeRoutes(app: App) {
       middleware: [requireUser({ allowWithout2fa: true })] as const,
       responses: { 200: { description: 'Current user', content: { 'application/json': { schema: Me } } } },
     }),
-    (c) => c.json(meOf(c.var.user!), 200),
+    (c) => c.json(meOf(c.var.user!, c.var.deps.config.REQUIRE_TWO_FACTOR), 200),
   );
 
   app.openapi(
@@ -75,7 +75,7 @@ export function registerMeRoutes(app: App) {
       const { locale } = c.req.valid('json');
       const { db } = c.var.deps;
       await db.update(userTable).set({ locale }).where(eq(userTable.id, c.var.user!.id));
-      return c.json(meOf({ ...c.var.user!, locale }), 200);
+      return c.json(meOf({ ...c.var.user!, locale }, c.var.deps.config.REQUIRE_TWO_FACTOR), 200);
     },
   );
 
@@ -110,7 +110,7 @@ export function registerMeRoutes(app: App) {
         if (can(user.roles, def.resource, 'read')) data[def.path] = await entityReader(def).list(db, user);
       }
       const s = can(user.roles, 'settings', 'read') || can(user.roles, 'bookings', 'read') ? await loadSettings(db) : null;
-      return c.json({ me: meOf(user), settings: s, data }, 200);
+      return c.json({ me: meOf(user, c.var.deps.config.REQUIRE_TWO_FACTOR), settings: s, data }, 200);
     },
   );
 

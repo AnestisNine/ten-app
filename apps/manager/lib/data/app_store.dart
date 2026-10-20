@@ -412,7 +412,7 @@ class AppStore {
       'conflict' => err.message == 'Referenced by other records or references a missing record'
           ? 'Δεν γίνεται: χρησιμοποιείται από άλλες εγγραφές.'
           : err.message,
-      'validation_failed' => 'Μη έγκυρα στοιχεία.',
+      'validation_failed' => err.message == 'Invalid input' ? 'Μη έγκυρα στοιχεία.' : err.message,
       'offline' => 'Δεν υπάρχει σύνδεση με τον server. Η αλλαγή δεν αποθηκεύτηκε.',
       'unauthenticated' => 'Η σύνδεση έληξε. Συνδέσου ξανά.',
       _ => err.message,

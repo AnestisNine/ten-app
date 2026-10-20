@@ -20,6 +20,11 @@ const Env = z.object({
   /** SMTP connection string, e.g. smtps://user:pass@smtp.example.com:465. Empty = print emails to the log. */
   SMTP_URL: z.string().default(''),
   MAIL_FROM: z.string().default('TBN Manager <no-reply@localhost>'),
+  /**
+   * Enforce 2FA for admin/manager/accountant/social roles. Only the throw-away local preview turns this off;
+   * a production server refuses to start without it unless ALLOW_DEMO_SEED is also set.
+   */
+  REQUIRE_TWO_FACTOR: z.enum(['true', 'false']).default('true').transform((v) => v === 'true'),
   /** Directory with the built Flutter web app to serve at /. Empty = don't serve. */
   WEB_APP_DIR: z.string().default(''),
 });

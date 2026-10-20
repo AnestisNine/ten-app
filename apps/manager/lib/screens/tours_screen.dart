@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../core/models.dart';
-import '../core/money.dart';
-import '../core/place_widgets.dart';
-import '../core/places.dart';
 import '../core/route_widgets.dart';
 import '../core/van_dialog.dart';
 import '../core/vans.dart';
@@ -425,145 +422,27 @@ class _ToursScreenState extends State<ToursScreen> {
     );
   }
 
-  void _addLiveToTour(TourItem tour) {
-    final venue = TextEditingController();
-    final place = PlaceValue(
-      countryCode: 'GR',
-      countryName: 'Greece',
-    );
-    final cashIncome = TextEditingController(text: '0');
-    final merchIncome = TextEditingController(text: '0');
-    final soundExpenses = TextEditingController(text: '0');
-    final extraExpenses = TextEditingController(text: '0');
-    DateTime date = tour.startDate;
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, modalSetState) {
-            return DraggableScrollableSheet(
-              expand: false,
-              initialChildSize: .90,
-              maxChildSize: .96,
-              builder: (context, controller) {
-                return ListView(
-                  controller: controller,
-                  padding: EdgeInsets.only(
-                    left: 20,
-                    right: 20,
-                    top: 20,
-                    bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-                  ),
-                  children: [
-                    Text(
-                      'Νέο Live · ${tour.name}',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    _field(venue, 'Venue'),
-                    PlaceFields(
-                      value: place,
-                      onChanged: () => modalSetState(() {}),
-                    ),
-                    const SizedBox(height: 10),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Ημερομηνία'),
-                      trailing: Text(_date(date)),
-                      onTap: () async {
-                        final picked = await showDatePicker(
-                          context: context,
-                          firstDate: tour.startDate,
-                          lastDate: tour.endDate,
-                          initialDate: date,
-                        );
-                        if (picked != null) {
-                          modalSetState(() {
-                            date = picked;
-                          });
-                        }
-                      },
-                    ),
-                    _field(
-                      cashIncome,
-                      'Cash Income',
-                      numeric: true,
-                    ),
-                    _field(
-                      merchIncome,
-                      'Merch Income',
-                      numeric: true,
-                    ),
-                    _field(
-                      soundExpenses,
-                      'Sound Expenses',
-                      numeric: true,
-                    ),
-                    _field(
-                      extraExpenses,
-                      'Extra Expenses',
-                      numeric: true,
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        if (venue.text.trim().isEmpty || !place.hasCity) {
-                          return;
-                        }
-
-                        AppStore.create(
-                          LiveItem(
-                            id: newId(),
-                            venue: venue.text.trim(),
-                            city: place.city.trim(),
-                            country: place.countryName,
-                            countryCode: place.countryCode,
-                            lat: place.lat,
-                            lon: place.lon,
-                            date: date,
-                            status: LiveStatus.proposal,
-                            tourId: tour.id,
-                            cashIncomeCents: parseCents(cashIncome.text) ?? 0,
-                            merchIncomeCents: parseCents(merchIncome.text) ?? 0,
-                            soundExpensesCents: parseCents(soundExpenses.text) ?? 0,
-                            extraExpensesCents: parseCents(extraExpenses.text) ?? 0,
-                          ),
-                        );
-                        setState(() {});
-
-                        Navigator.pop(context);
-                      },
-                      child: const Text('Προσθήκη Live'),
-                    ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-
-  Widget _field(
-    TextEditingController controller,
-    String label, {
-    bool numeric = false,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: TextField(
-        controller: controller,
-        keyboardType: numeric ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
-        decoration: InputDecoration(labelText: label),
+  /// Opens the full live page for a new live in this tour; saved only when the user presses Save.
+  Future<void> _addLiveToTour(TourItem tour) async {
+    await Navigator.of(context).push(
+      TbnPageRoute<void>(
+        builder: (_) => LiveDetailScreen(
+          live: LiveItem(
+            id: newId(),
+            venue: '',
+            country: 'Greece',
+            countryCode: 'GR',
+            date: tour.startDate,
+            status: LiveStatus.proposal,
+            tourId: tour.id,
+          ),
+          isNew: true,
+        ),
       ),
     );
+    if (mounted) setState(() {});
   }
+
 }
 
 class _Stat extends StatelessWidget {

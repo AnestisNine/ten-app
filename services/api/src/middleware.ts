@@ -46,7 +46,8 @@ export function requireUser(opts: { allowWithout2fa?: boolean } = {}) {
   return createMiddleware<AppEnv>(async (c, next) => {
     const user = c.var.user;
     if (!user) throw new ApiError('unauthenticated');
-    if (!opts.allowWithout2fa && requiresTwoFactor(user.roles) && !user.twoFactorEnabled) {
+    const enforce = c.var.deps.config.REQUIRE_TWO_FACTOR;
+    if (enforce && !opts.allowWithout2fa && requiresTwoFactor(user.roles) && !user.twoFactorEnabled) {
       throw new ApiError('two_factor_required', 'Your role requires two-factor authentication. Enable it first.');
     }
     await next();

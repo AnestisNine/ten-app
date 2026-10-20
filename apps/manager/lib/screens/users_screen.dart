@@ -4,7 +4,7 @@ import '../core/theme.dart';
 import '../core/widgets.dart';
 import '../data/app_store.dart';
 import '../l10n/app_localizations.dart';
-import 'menu_detail_screens.dart' show roleLabel;
+import '../core/roles.dart';
 
 /// Admin page: invite people by email, set their roles, deactivate them.
 /// Only users invited here can sign in.

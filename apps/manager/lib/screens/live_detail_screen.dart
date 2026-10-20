@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -14,9 +15,13 @@ class LiveDetailScreen extends StatefulWidget {
   const LiveDetailScreen({
     super.key,
     required this.live,
+    this.isNew = false,
   });
 
   final LiveItem live;
+
+  /// A live that does not exist on the server yet: Save creates it.
+  final bool isNew;
 
   @override
   State<LiveDetailScreen> createState() => _LiveDetailScreenState();
@@ -41,6 +46,8 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
   late final TextEditingController ticketUrl;
 
   late DateTime liveDate;
+  bool _saving = false;
+  Uint8List? _pendingPoster;
   late LiveStatus status;
   String? tourId;
 
@@ -115,22 +122,24 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
   @override
   Widget build(BuildContext context) {
     final live = widget.live;
+    final canEdit = AppStore.can('bookings', 'write');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(live.venue),
+        title: Text(widget.isNew ? 'Νέο live' : live.venue),
         actions: [
-          if (AppStore.can('bookings', 'delete'))
+          if (!widget.isNew && AppStore.can('bookings', 'delete'))
             IconButton(
               tooltip: 'Διαγραφή live',
               onPressed: _confirmDelete,
               icon: const Icon(Icons.delete_outline_rounded),
               color: TbnColors.danger,
             ),
+          if (canEdit)
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilledButton.icon(
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               icon: const Icon(Icons.check_rounded, size: 20),
               label: const Text('Αποθήκευση'),
               style: FilledButton.styleFrom(
@@ -143,6 +152,7 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          if (!canEdit) const ReadOnlyBanner(),
           _contextBanner(),
           _section(
             'Βασικά στοιχεία',
@@ -303,20 +313,20 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
                     child: SizedBox(
                       width: 72,
                       height: 72,
-                      child: imageProviderFromRef(live.posterUrl) == null
+                      child: _posterPreview(live) == null
                           ? const ColoredBox(
                               color: Colors.black26,
                               child: Icon(Icons.image_outlined),
                             )
-                          : Image(image: imageProviderFromRef(live.posterUrl)!, fit: BoxFit.cover),
+                          : Image(image: _posterPreview(live)!, fit: BoxFit.cover),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: OutlinedButton.icon(
-                      onPressed: AppStore.can('bookings', 'write') ? _pickPoster : null,
+                      onPressed: canEdit ? _pickPoster : null,
                       icon: const Icon(Icons.upload_outlined),
-                      label: Text(live.posterUrl == null ? 'Ανέβασμα αφίσας' : 'Αλλαγή αφίσας'),
+                      label: Text(_posterPreview(live) == null ? 'Ανέβασμα αφίσας' : 'Αλλαγή αφίσας'),
                     ),
                   ),
                 ],
@@ -530,6 +540,12 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
 
   Future<void> _save() async {
     final live = widget.live;
+    if (venue.text.trim().isEmpty || place.city.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Συμπλήρωσε venue και πόλη.')),
+      );
+      return;
+    }
     final invalid = [doorDeal, fixAmount, merchIncome, soundEngineerFee, technicianFee, supportBandFee]
         .where((c) => c.text.trim().isNotEmpty && parseCents(c.text) == null);
     final link = ticketUrl.text.trim();
@@ -572,6 +588,22 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
       live.ticketUrl = ticketUrl.text.trim().isEmpty ? null : ticketUrl.text.trim();
     });
 
+    if (widget.isNew) {
+      setState(() => _saving = true);
+      final created = await AppStore.create(live);
+      if (created && _pendingPoster != null) {
+        await AppStore.uploadLivePoster(live, _pendingPoster!, 'poster.jpg');
+      }
+      if (!mounted) return;
+      setState(() => _saving = false);
+      if (!created) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Το live δημιουργήθηκε.')),
+      );
+      Navigator.of(context).pop();
+      return;
+    }
+
     final saved = await AppStore.update(live);
     if (!saved || !mounted) return;
 
@@ -584,17 +616,40 @@ class _LiveDetailScreenState extends State<LiveDetailScreen> {
 
   int _money(String value) => parseCents(value) ?? 0;
 
+  ImageProvider? _posterPreview(LiveItem live) =>
+      _pendingPoster != null ? MemoryImage(_pendingPoster!) : imageProviderFromRef(live.posterUrl);
+
   Future<void> _pickPoster() async {
-    final image = await ImagePicker().pickImage(
-      source: ImageSource.gallery,
-      maxWidth: 1600,
-      maxHeight: 1600,
-      imageQuality: 85,
-    );
-    if (image == null) return;
-    final bytes = await image.readAsBytes();
-    await AppStore.uploadLivePoster(widget.live, bytes, 'poster.jpg');
-    if (mounted) setState(() {});
+    final XFile? image;
+    final Uint8List bytes;
+    try {
+      image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1600,
+        maxHeight: 1600,
+        imageQuality: 85,
+      );
+      if (image == null) return;
+      bytes = await image.readAsBytes();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Δεν ήταν δυνατή η επιλογή εικόνας: $e')),
+        );
+      }
+      return;
+    }
+    if (widget.isNew) {
+      // Uploaded right after the live is created (Save).
+      setState(() => _pendingPoster = bytes);
+      return;
+    }
+    final url = await AppStore.uploadLivePoster(widget.live, bytes, 'poster.jpg');
+    if (!mounted) return;
+    setState(() {});
+    if (url != null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Η αφίσα ανέβηκε.')));
+    }
   }
 
   int _int(String value) {
