@@ -14,7 +14,7 @@ const params = new URL(Astro.url).searchParams;
     <h1>{s.contact}</h1>
     <p class="lead">{s.contactIntro}</p>
   </div>
-  <div class="wrap" style="padding-bottom:100px">
+  <div class="wrap" style="padding-bottom:64px">
     <form class="form contact-form" data-lang={lang} data-sent={f.sent} data-sending={f.sending} data-error={`${f.error} ${site.email}`} novalidate>
       <label>{f.type}
         <select name="type">
